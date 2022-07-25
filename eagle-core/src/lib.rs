@@ -1,4 +1,24 @@
+use futures::{channel::mpsc, SinkExt};
 use std::sync::Arc;
+
+#[derive(Clone)]
+pub struct EagleEndpoint {
+    inner: mpsc::UnboundedSender<EagleEvent>,
+}
+
+impl EagleEndpoint {
+    pub fn new(inner: mpsc::UnboundedSender<EagleEvent>) -> Self {
+        Self { inner }
+    }
+
+    pub async fn send_metric(&self, metric: Metric) -> bool {
+        self.inner
+            .clone()
+            .send(EagleEvent::Metric(metric))
+            .await
+            .is_ok()
+    }
+}
 
 pub enum EagleEvent {
     Metric(Metric),
@@ -58,4 +78,9 @@ pub trait MetricSink {
     async fn process(&mut self, event: MetricEvent);
 
     fn filter(&self) -> MetricFilter;
+}
+
+#[async_trait::async_trait]
+pub trait Source {
+    async fn produce(self, endpoint: EagleEndpoint);
 }

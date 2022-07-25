@@ -2,7 +2,8 @@ use std::{sync::Arc, time::Instant};
 
 use futures::{channel::mpsc, SinkExt, StreamExt};
 
-use eagle_core::{EagleEvent, MetricEvent, MetricFilter};
+use eagle_core::{EagleEndpoint, EagleEvent, MetricEvent, MetricFilter};
+use tokio::task::JoinHandle;
 
 enum Recv {
     Available(EagleEvent),
@@ -21,11 +22,6 @@ impl MainReceiver {
 
         Recv::Disconnected
     }
-}
-
-#[derive(Clone)]
-struct MainBus {
-    inner: mpsc::UnboundedSender<EagleEvent>,
 }
 
 #[derive(Clone)]
@@ -49,13 +45,25 @@ struct SinkEndpoint {
     inner: mpsc::UnboundedReceiver<MetricEvent>,
 }
 
-fn new_main_bus() -> (MainBus, MainReceiver) {
+fn new_main_bus() -> (EagleEndpoint, MainReceiver) {
     let (sender, recv) = mpsc::unbounded::<EagleEvent>();
 
-    (MainBus { inner: sender }, MainReceiver { inner: recv })
+    (EagleEndpoint::new(sender), MainReceiver { inner: recv })
 }
 
-async fn run_main_loop(mut main_recv: MainReceiver) {
+struct MainProcess {
+    endpoint: EagleEndpoint,
+    handle: JoinHandle<()>,
+}
+
+impl MainProcess {
+    pub async fn wait_until_complete(self) {
+        let _ = self.handle.await;
+    }
+}
+
+fn start_main_process() -> MainProcess {
+    let (endpoint, mut main_recv) = new_main_bus();
     let mut sinks = Vec::<SinkProcess>::new();
     let handle = tokio::spawn(async move {
         while let Recv::Available(event) = main_recv.recv().await {
@@ -79,12 +87,12 @@ async fn run_main_loop(mut main_recv: MainReceiver) {
         }
     });
 
-    let _ = handle.await;
+    MainProcess { endpoint, handle }
 }
 
 #[tokio::main]
 async fn main() {
-    let (sender, recv) = new_main_bus();
+    let process = start_main_process();
 
-    run_main_loop(recv).await;
+    process.wait_until_complete().await;
 }
