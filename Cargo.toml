@@ -1,4 +1,5 @@
 [workspace]
 members = [
-    "eagle"
+    "eagle",
+    "eagle-core"
 ]
