@@ -190,9 +190,11 @@ checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
 name = "eagle"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "eagle-core",
  "futures",
  "heim",
+ "heim-disk",
  "tokio",
 ]
 
@@ -355,6 +357,23 @@ dependencies = [
  "nix",
  "pin-utils",
  "uom",
+ "winapi",
+]
+
+[[package]]
+name = "heim-disk"
+version = "0.1.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75603ff3868851c04954ee86bf610a6bd45be2732a0e81c35fd72b2b90fa4718"
+dependencies = [
+ "bitflags",
+ "cfg-if",
+ "core-foundation",
+ "heim-common",
+ "heim-runtime",
+ "libc",
+ "mach",
+ "widestring",
  "winapi",
 ]
 
@@ -659,6 +678,12 @@ checksum = "d743fdedc5c64377b5fc2bc036b01c7fd642205a0d96356034ae3404d49eb7fb"
 dependencies = [
  "cc",
 ]
+
+[[package]]
+name = "widestring"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c168940144dd21fd8046987c16a46a33d5fc84eec29ef9dcddc2ac9e31526b7c"
 
 [[package]]
 name = "winapi"

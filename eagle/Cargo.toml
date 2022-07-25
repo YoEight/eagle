@@ -13,5 +13,7 @@ features = ["macros", "time", "rt-multi-thread"]
 path = "../eagle-core"
 
 [dependencies]
+async-trait = "*"
 futures = "*"
 heim = "0.1.0-rc.1"
+heim-disk = "0.1.0-rc.1"

@@ -1,3 +1,5 @@
+mod sources;
+
 use std::{sync::Arc, time::Instant};
 
 use futures::{channel::mpsc, SinkExt, StreamExt};

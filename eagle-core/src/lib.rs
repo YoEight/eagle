@@ -18,15 +18,26 @@ impl EagleEndpoint {
             .await
             .is_ok()
     }
+
+    pub async fn send_metrics(&self, metrics: Vec<Metric>) -> bool {
+        let msgs = metrics.into_iter().map(|m| Ok(EagleEvent::Metric(m)));
+        let mut msgs = futures::stream::iter(msgs);
+
+        self.inner.clone().send_all(&mut msgs).await.is_ok()
+    }
 }
 
 pub enum EagleEvent {
     Metric(Metric),
 }
 
+/// We should have Metric and Runtime related metric info like
+/// what source generated the metric.
 pub struct Metric {
     pub name: String,
-    pub source: String,
+    pub source: String, // FIXME - That field shouldn't be here.
+    pub value: f64,
+    // TODO - Add tags, timestamp and stuff.
 }
 
 #[derive(Clone)]
