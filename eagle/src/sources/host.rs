@@ -1,4 +1,4 @@
-use eagle_core::{Metric, Source};
+use eagle_core::{EagleClient, Metric, Source};
 use futures::StreamExt;
 use heim::units::information::byte;
 
@@ -14,7 +14,7 @@ impl Disks {
 
 #[async_trait::async_trait]
 impl Source for Disks {
-    async fn produce(self, endpoint: eagle_core::EagleEndpoint) {
+    async fn produce(self, client: EagleClient) {
         match heim_disk::io_counters().await {
             Err(_) => {
                 // TODO - should decide what we should do in this case.
@@ -30,7 +30,7 @@ impl Source for Disks {
                             .iter()
                             .any(|d| d.as_str() == counter.device_name())
                         {
-                            if !endpoint
+                            if !client
                                 .send_metrics(vec![
                                     Metric {
                                         name: "disk_read_bytes_total".to_string(),

@@ -5,6 +5,10 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[dependencies.uuid]
+version = "*"
+features = ["v4"]
+
 [dependencies.tokio]
 version = "1"
 features = ["macros", "time", "rt-multi-thread"]

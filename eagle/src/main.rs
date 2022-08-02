@@ -1,11 +1,14 @@
+mod runtime;
 mod sources;
 
-use std::{sync::Arc, time::Instant};
+use std::{cell::RefCell, collections::HashMap, sync::Arc, time::Instant};
 
 use futures::{channel::mpsc, SinkExt, StreamExt};
 
-use eagle_core::{EagleEndpoint, EagleEvent, MetricEvent, MetricFilter};
+use eagle_core::{EagleEndpoint, EagleEvent, Event, MetricEvent, MetricFilter, MetricSink, Source};
+use runtime::sink::SinkState;
 use tokio::task::JoinHandle;
+use uuid::Uuid;
 
 enum Recv {
     Available(EagleEvent),
@@ -64,13 +67,19 @@ impl MainProcess {
     }
 }
 
-fn start_main_process() -> MainProcess {
+#[derive(Default)]
+pub struct Configuration {
+    sources: HashMap<Uuid, Box<dyn Source>>,
+    sinks: HashMap<Uuid, RefCell<SinkState>>,
+}
+
+fn start_main_process(mut conf: Configuration) -> MainProcess {
     let (endpoint, mut main_recv) = new_main_bus();
     let mut sinks = Vec::<SinkProcess>::new();
     let handle = tokio::spawn(async move {
         while let Recv::Available(event) = main_recv.recv().await {
-            match event {
-                EagleEvent::Metric(metric) => {
+            match event.event {
+                Event::Metric(metric) => {
                     let metric = Arc::new(metric);
                     let metric_event = MetricEvent::Metric(metric.clone());
 

@@ -11,28 +11,62 @@ impl EagleEndpoint {
         Self { inner }
     }
 
-    pub async fn send_metric(&self, metric: Metric) -> bool {
-        self.inner
-            .clone()
-            .send(EagleEvent::Metric(metric))
-            .await
-            .is_ok()
+    pub async fn send_metric(&self, origin: Origin, metric: Metric) -> bool {
+        self.send_metrics(origin, vec![metric]).await
     }
 
-    pub async fn send_metrics(&self, metrics: Vec<Metric>) -> bool {
-        let msgs = metrics.into_iter().map(|m| Ok(EagleEvent::Metric(m)));
+    pub async fn send_metrics(&self, origin: Origin, metrics: Vec<Metric>) -> bool {
+        let msgs = metrics.into_iter().map(|m| {
+            Ok(EagleEvent {
+                origin,
+                event: Event::Metric(m),
+            })
+        });
+
         let mut msgs = futures::stream::iter(msgs);
 
         self.inner.clone().send_all(&mut msgs).await.is_ok()
     }
 }
 
-pub enum EagleEvent {
+pub struct EagleClient {
+    origin: Origin,
+    endpoint: EagleEndpoint,
+}
+
+impl EagleClient {
+    pub async fn send_metric(&self, metric: Metric) -> bool {
+        self.endpoint.send_metric(self.origin, metric).await
+    }
+
+    pub async fn send_metrics(&self, metrics: Vec<Metric>) -> bool {
+        self.endpoint.send_metrics(self.origin, metrics).await
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
+pub struct Origin(pub uuid::Uuid);
+
+impl Origin {
+    pub fn generate() -> Self {
+        Self(uuid::Uuid::new_v4())
+    }
+}
+
+#[derive(Debug)]
+pub struct EagleEvent {
+    pub origin: Origin,
+    pub event: Event,
+}
+
+#[derive(Debug)]
+pub enum Event {
     Metric(Metric),
 }
 
 /// We should have Metric and Runtime related metric info like
 /// what source generated the metric.
+#[derive(Debug)]
 pub struct Metric {
     pub name: String,
     pub source: String, // FIXME - That field shouldn't be here.
@@ -43,7 +77,7 @@ pub struct Metric {
 #[derive(Clone)]
 pub enum MetricEvent {
     Metric(Arc<Metric>),
-    None,
+    Tick,
 }
 
 pub struct MetricFilter {
@@ -93,5 +127,5 @@ pub trait MetricSink {
 
 #[async_trait::async_trait]
 pub trait Source {
-    async fn produce(self, endpoint: EagleEndpoint);
+    async fn produce(self, client: EagleClient);
 }
