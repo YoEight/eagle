@@ -6,7 +6,7 @@ use std::{cell::RefCell, collections::HashMap, sync::Arc, time::Instant};
 use futures::{channel::mpsc, SinkExt, StreamExt};
 
 use eagle_core::{EagleEndpoint, EagleEvent, Event, MetricEvent, MetricFilter, MetricSink, Source};
-use runtime::sink::{SinkState, spawn_sink};
+use runtime::sink::{spawn_sink, SinkConfig, SinkState};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
@@ -72,7 +72,7 @@ pub struct SourceId(Uuid);
 #[derive(Default)]
 pub struct Configuration {
     sources: HashMap<Uuid, Box<dyn Source>>,
-    sinks: HashMap<Uuid, SinkState>,
+    sinks: Vec<SinkState>,
 }
 
 impl Configuration {
@@ -89,37 +89,50 @@ impl Configuration {
         SourceId(id)
     }
 
-    pub fn register_sink<S>(&mut self, name: impl AsRef<str>, sink: S)
+    pub fn register_sink<S>(&mut self, config: SinkConfig, sink: S)
     where
-        S: MetricSink + Send,
+        S: MetricSink + Send + 'static,
     {
-        let state = spawn_sink(name, sink);
+        let state = spawn_sink(config, sink);
 
-        self.sinks.insert(Uuid::new_v4(), state);
+        self.sinks.push(state);
     }
 }
 
-fn start_main_process(mut conf: Configuration) -> MainProcess {
+fn start_main_process(conf: Configuration) -> MainProcess {
     let (endpoint, mut main_recv) = new_main_bus();
-    let mut sinks = Vec::<SinkProcess>::new();
+    let mut sinks = conf.sinks;
     let handle = tokio::spawn(async move {
+        let mut deads = Vec::new();
         while let Recv::Available(event) = main_recv.recv().await {
             match event.event {
                 Event::Metric(metric) => {
                     let metric = Arc::new(metric);
-                    let metric_event = MetricEvent::Metric(metric.clone());
 
                     for sink in sinks.iter_mut() {
-                        if sink.filter.is_handled(metric.as_ref()) {
-                            if !sink.client.send(metric_event.clone()).await {
+                        if sink.is_handled(metric.as_ref()) {
+                            if !sink.send_metric(metric.clone()).await {
                                 // TODO - Means that a sink did and we might consider restarting or
                                 // shutdown the damn application completly.
-                            }
+                                tracing::error!(
+                                    target = "main-process",
+                                    "Sink {} died",
+                                    sink.name()
+                                );
 
-                            sink.last_time = Some(Instant::now());
+                                deads.push(sink.id());
+                            }
                         }
                     }
+
+                    // We remove all dead sinks from the sink roster.
+                    if !deads.is_empty() {
+                        sinks.retain(|s| !deads.contains(&s.id()));
+                        deads.clear();
+                    }
                 }
+
+                Event::Tick => {}
             }
         }
     });

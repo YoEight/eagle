@@ -62,6 +62,7 @@ pub struct EagleEvent {
 #[derive(Debug)]
 pub enum Event {
     Metric(Metric),
+    Tick,
 }
 
 /// We should have Metric and Runtime related metric info like
@@ -98,6 +99,10 @@ impl MetricFilter {
         }
     }
 
+    pub fn no_filter() -> Self {
+        MetricFilter::new(|_| true)
+    }
+
     pub fn filter_by_source_name<F>(fun: F) -> Self
     where
         F: Fn(&str) -> bool + Send + Sync + 'static,
@@ -121,8 +126,6 @@ impl MetricFilter {
 #[async_trait::async_trait]
 pub trait MetricSink {
     async fn process(&mut self, event: MetricEvent);
-
-    fn filter(&self) -> MetricFilter;
 }
 
 #[async_trait::async_trait]
