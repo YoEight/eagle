@@ -6,7 +6,7 @@ use std::{cell::RefCell, collections::HashMap, sync::Arc, time::Instant};
 use futures::{channel::mpsc, SinkExt, StreamExt};
 
 use eagle_core::{EagleEndpoint, EagleEvent, Event, MetricEvent, MetricFilter, MetricSink, Source};
-use runtime::sink::SinkState;
+use runtime::sink::{SinkState, spawn_sink};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
@@ -67,10 +67,36 @@ impl MainProcess {
     }
 }
 
+pub struct SourceId(Uuid);
+
 #[derive(Default)]
 pub struct Configuration {
     sources: HashMap<Uuid, Box<dyn Source>>,
-    sinks: HashMap<Uuid, RefCell<SinkState>>,
+    sinks: HashMap<Uuid, SinkState>,
+}
+
+impl Configuration {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn register_source<S>(&mut self, name: impl AsRef<str>, source: S) -> SourceId
+    where
+        S: Source + Send,
+    {
+        let id = Uuid::new_v4();
+
+        SourceId(id)
+    }
+
+    pub fn register_sink<S>(&mut self, name: impl AsRef<str>, sink: S)
+    where
+        S: MetricSink + Send,
+    {
+        let state = spawn_sink(name, sink);
+
+        self.sinks.insert(Uuid::new_v4(), state);
+    }
 }
 
 fn start_main_process(mut conf: Configuration) -> MainProcess {
@@ -103,7 +129,8 @@ fn start_main_process(mut conf: Configuration) -> MainProcess {
 
 #[tokio::main]
 async fn main() {
-    let process = start_main_process();
+    let mut conf = Configuration::new();
+    let process = start_main_process(conf);
 
     process.wait_until_complete().await;
 }
