@@ -6,7 +6,7 @@ use std::{cell::RefCell, collections::HashMap, sync::Arc, time::Instant};
 use futures::{channel::mpsc, SinkExt, StreamExt};
 
 use eagle_core::{EagleEndpoint, EagleEvent, Event, MetricEvent, MetricFilter, MetricSink, Source};
-use runtime::sink::{spawn_sink, SinkConfig, SinkState};
+use runtime::sink::{spawn_sink, Console, SinkConfig, SinkState};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
@@ -104,6 +104,8 @@ fn start_main_process(conf: Configuration) -> MainProcess {
     let mut sinks = conf.sinks;
     let handle = tokio::spawn(async move {
         let mut deads = Vec::new();
+        let mut errored = true;
+
         while let Recv::Available(event) = main_recv.recv().await {
             match event.event {
                 Event::Metric(metric) => {
@@ -133,7 +135,20 @@ fn start_main_process(conf: Configuration) -> MainProcess {
                 }
 
                 Event::Tick => {}
+
+                Event::Shutdown => {
+                    for sink in sinks {
+                        sink.shutdown().await;
+                    }
+
+                    errored = false;
+                    break;
+                }
             }
+        }
+
+        if errored {
+            tracing::error!(target = "main-process", "Main process exited unexpectedly");
         }
     });
 
@@ -143,6 +158,8 @@ fn start_main_process(conf: Configuration) -> MainProcess {
 #[tokio::main]
 async fn main() {
     let mut conf = Configuration::new();
+
+    conf.register_sink(SinkConfig::new("console"), Console);
     let process = start_main_process(conf);
 
     process.wait_until_complete().await;

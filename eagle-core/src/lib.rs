@@ -63,6 +63,7 @@ pub struct EagleEvent {
 pub enum Event {
     Metric(Metric),
     Tick,
+    Shutdown,
 }
 
 /// We should have Metric and Runtime related metric info like

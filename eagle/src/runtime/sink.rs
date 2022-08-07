@@ -1,13 +1,18 @@
-use std::{time::Instant, sync::Arc};
+mod console;
+pub use console::Console;
 
-use eagle_core::{Metric, MetricFilter, MetricSink, MetricEvent};
+use std::{sync::Arc, time::Instant};
+
+use eagle_core::{Metric, MetricEvent, MetricFilter, MetricSink};
 use futures::{channel::mpsc, SinkExt, StreamExt};
 use tokio::task::JoinHandle;
+use tokio::time::Duration;
 use uuid::Uuid;
 
 enum Msg {
     Metric(Arc<Metric>),
     Tick,
+    Shutdown,
 }
 
 #[derive(Clone)]
@@ -16,14 +21,16 @@ pub struct SinkClient {
 }
 
 impl SinkClient {
-    pub async fn shutdown(&self) {}
-
     pub async fn send_metric(&self, metric: Arc<Metric>) -> bool {
         self.inner.clone().send(Msg::Metric(metric)).await.is_ok()
     }
 
     pub async fn send_tick(&self) -> bool {
         self.inner.clone().send(Msg::Tick).await.is_ok()
+    }
+
+    pub async fn shutdown(mut self) {
+        self.inner.send(Msg::Shutdown).await;
     }
 }
 
@@ -50,6 +57,30 @@ impl SinkState {
         result
     }
 
+    pub async fn shutdown(self) {
+        self.client.shutdown().await;
+
+        match tokio::time::timeout(Duration::from_secs(10), self.handle).await {
+            Ok(outcome) => {
+                if let Err(e) = outcome {
+                    tracing::error!(
+                        target = "main-process",
+                        "Sink '{}' ended unexpectedly: {}",
+                        self.config.name,
+                        e
+                    );
+                }
+            }
+            Err(_) => {
+                tracing::error!(
+                    target = "main-process",
+                    "Sink '{}' timeout at shutting down in a timely manner",
+                    self.config.name
+                );
+            }
+        }
+    }
+
     pub fn name(&self) -> &str {
         self.config.name.as_str()
     }
@@ -72,11 +103,8 @@ impl SinkConfig {
         }
     }
 
-    pub fn set_filter(mut self, filter: MetricFilter) -> Self {
-        Self {
-            filter,
-            ..self
-        }
+    pub fn set_filter(self, filter: MetricFilter) -> Self {
+        Self { filter, ..self }
     }
 }
 
@@ -88,6 +116,7 @@ where
     let client = SinkClient { inner };
     let name = config.name.to_string();
     let handle = tokio::spawn(async move {
+        let mut errored = true;
         tracing::info!(target = name.as_str(), "Sink started");
 
         while let Some(msg) = recv.next().await {
@@ -96,13 +125,26 @@ where
                     sink.process(MetricEvent::Metric(m.clone())).await;
                     tracing::debug!(target = name.as_str(), "Metric '{}' processed", m.name);
                 }
+
                 Msg::Tick => {
                     tracing::debug!(target = name.as_str(), "Ticking completed");
+                }
+
+                Msg::Shutdown => {
+                    tracing::info!(
+                        target = name.as_str(),
+                        "Sink '{}' shutdown successfully",
+                        name
+                    );
+                    errored = false;
+                    break;
                 }
             }
         }
 
-        tracing::warn!(target = name.as_str(), "Sink exited");
+        if errored {
+            tracing::error!(target = name.as_str(), "Sink exited unexpectedly");
+        }
     });
 
     SinkState {
