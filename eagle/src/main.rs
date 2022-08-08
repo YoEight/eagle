@@ -173,7 +173,7 @@ async fn main() {
     conf.register_sink(SinkConfig::new("console"), Console);
     conf.register_source(
         Origin::new("host"),
-        Disks::new(vec!["/dev/nvme0n1".to_string()]),
+        Disks::new(vec!["nvme0n1".to_string()]),
     );
 
     let process = start_main_process(conf);

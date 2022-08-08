@@ -25,6 +25,7 @@ impl Source for Disks {
 
                 while let Some(item) = counters.next().await {
                     if let Ok(counter) = item {
+                        // println!("Device: {:?}", counter.device_name());
                         if self
                             .disks
                             .iter()
