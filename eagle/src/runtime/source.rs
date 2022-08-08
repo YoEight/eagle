@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use eagle_core::{Origin, Source, EagleClient, EagleEndpoint};
+use eagle_core::{EagleClient, EagleEndpoint, Origin, Source};
 use tokio::task::JoinHandle;
 
 pub struct SourceState {
@@ -24,8 +24,5 @@ where
         source.produce(client).await;
     });
 
-    SourceState {
-        origin,
-        handle,
-    }
+    SourceState { origin, handle }
 }
