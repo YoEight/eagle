@@ -1,16 +1,13 @@
-mod console;
-pub use console::Console;
-
 use std::{sync::Arc, time::Instant};
 
-use eagle_core::{Metric, MetricEvent, MetricFilter, MetricSink};
+use eagle_core::{Metric, MetricEvent, MetricFilter, MetricSink, Origin};
 use futures::{channel::mpsc, SinkExt, StreamExt};
 use tokio::task::JoinHandle;
 use tokio::time::Duration;
 use uuid::Uuid;
 
 enum Msg {
-    Metric(Arc<Metric>),
+    Metric(Arc<Origin>, Arc<Metric>),
     Tick,
     Shutdown,
 }
@@ -21,8 +18,12 @@ pub struct SinkClient {
 }
 
 impl SinkClient {
-    pub async fn send_metric(&self, metric: Arc<Metric>) -> bool {
-        self.inner.clone().send(Msg::Metric(metric)).await.is_ok()
+    pub async fn send_metric(&self, origin: Arc<Origin>, metric: Arc<Metric>) -> bool {
+        self.inner
+            .clone()
+            .send(Msg::Metric(origin, metric))
+            .await
+            .is_ok()
     }
 
     pub async fn send_tick(&self) -> bool {
@@ -46,12 +47,12 @@ impl SinkState {
         self.config.id
     }
 
-    pub fn is_handled(&self, metric: &Metric) -> bool {
-        self.config.filter.is_handled(metric)
+    pub fn is_handled(&self, origin: &Origin, metric: &Metric) -> bool {
+        self.config.filter.is_handled(origin, metric)
     }
 
-    pub async fn send_metric(&mut self, metric: Arc<Metric>) -> bool {
-        let result = self.client.send_metric(metric).await;
+    pub async fn send_metric(&mut self, origin: Arc<Origin>, metric: Arc<Metric>) -> bool {
+        let result = self.client.send_metric(origin, metric).await;
         self.last_time = Some(Instant::now());
 
         result
@@ -121,8 +122,13 @@ where
 
         while let Some(msg) = recv.next().await {
             match msg {
-                Msg::Metric(m) => {
-                    sink.process(MetricEvent::Metric(m.clone())).await;
+                Msg::Metric(o, m) => {
+                    sink.process(MetricEvent::Metric {
+                        origin: o.clone(),
+                        metric: m.clone(),
+                    })
+                    .await;
+
                     tracing::debug!(target = name.as_str(), "Metric '{}' processed", m.name);
                 }
 

@@ -2,7 +2,7 @@ use eagle_core::{EagleClient, Metric, Source};
 use futures::StreamExt;
 use heim::units::information::byte;
 
-struct Disks {
+pub struct Disks {
     disks: Vec<String>,
 }
 
@@ -34,22 +34,18 @@ impl Source for Disks {
                                 .send_metrics(vec![
                                     Metric {
                                         name: "disk_read_bytes_total".to_string(),
-                                        source: "hosts".to_string(), // FIXME - This value should be dynamically allocated.
                                         value: counter.read_bytes().get::<byte>() as f64,
                                     },
                                     Metric {
                                         name: "disk_reads_completed_total".to_string(),
-                                        source: "hosts".to_string(), // FIXME - This value should be dynamically allocated.
                                         value: counter.read_count() as f64,
                                     },
                                     Metric {
                                         name: "disk_written_bytes_total".to_string(),
-                                        source: "hosts".to_string(), // FIXME - This value should be dynamically allocated.
                                         value: counter.write_bytes().get::<byte>() as f64,
                                     },
                                     Metric {
                                         name: "disk_written_completed_total".to_string(),
-                                        source: "hosts".to_string(), // FIXME - This value should be dynamically allocated.
                                         value: counter.write_count() as f64,
                                     },
                                 ])

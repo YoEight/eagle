@@ -1,12 +1,20 @@
 mod runtime;
+mod sinks;
 mod sources;
 
-use std::{cell::RefCell, collections::HashMap, sync::Arc, time::Instant};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use futures::{channel::mpsc, SinkExt, StreamExt};
 
-use eagle_core::{EagleEndpoint, EagleEvent, Event, MetricEvent, MetricFilter, MetricSink, Source};
-use runtime::sink::{spawn_sink, Console, SinkConfig, SinkState};
+use eagle_core::{
+    EagleEndpoint, EagleEvent, Event, MetricEvent, MetricFilter, MetricSink, Origin, Source,
+};
+use runtime::{
+    sink::{spawn_sink, SinkConfig, SinkState},
+    source::{spawn_source, SourceState},
+};
+use sinks::Console;
+use sources::Disks;
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
@@ -40,12 +48,6 @@ impl SinkClient {
     }
 }
 
-struct SinkProcess {
-    filter: MetricFilter,
-    client: SinkClient,
-    last_time: Option<Instant>,
-}
-
 struct SinkEndpoint {
     inner: mpsc::UnboundedReceiver<MetricEvent>,
 }
@@ -69,24 +71,31 @@ impl MainProcess {
 
 pub struct SourceId(Uuid);
 
-#[derive(Default)]
 pub struct Configuration {
-    sources: HashMap<Uuid, Box<dyn Source>>,
+    sources: Vec<SourceState>,
     sinks: Vec<SinkState>,
+    endpoint: EagleEndpoint,
+    receiver: MainReceiver,
 }
 
 impl Configuration {
     pub fn new() -> Self {
-        Self::default()
+        let (endpoint, receiver) = new_main_bus();
+        Self {
+            sources: Default::default(),
+            sinks: Default::default(),
+            endpoint,
+            receiver,
+        }
     }
 
-    pub fn register_source<S>(&mut self, name: impl AsRef<str>, source: S) -> SourceId
+    pub fn register_source<S>(&mut self, origin: Origin, source: S)
     where
-        S: Source + Send,
+        S: Source + Send + 'static,
     {
-        let id = Uuid::new_v4();
+        let state = spawn_source(origin, self.endpoint.clone(), source);
 
-        SourceId(id)
+        self.sources.push(state);
     }
 
     pub fn register_sink<S>(&mut self, config: SinkConfig, sink: S)
@@ -100,7 +109,9 @@ impl Configuration {
 }
 
 fn start_main_process(conf: Configuration) -> MainProcess {
-    let (endpoint, mut main_recv) = new_main_bus();
+    let mut main_recv = conf.receiver;
+    let endpoint = conf.endpoint;
+    let _sources = conf.sources;
     let mut sinks = conf.sinks;
     let handle = tokio::spawn(async move {
         let mut deads = Vec::new();
@@ -112,8 +123,8 @@ fn start_main_process(conf: Configuration) -> MainProcess {
                     let metric = Arc::new(metric);
 
                     for sink in sinks.iter_mut() {
-                        if sink.is_handled(metric.as_ref()) {
-                            if !sink.send_metric(metric.clone()).await {
+                        if sink.is_handled(event.origin.as_ref(), metric.as_ref()) {
+                            if !sink.send_metric(event.origin.clone(), metric.clone()).await {
                                 // TODO - Means that a sink did and we might consider restarting or
                                 // shutdown the damn application completly.
                                 tracing::error!(
@@ -127,7 +138,7 @@ fn start_main_process(conf: Configuration) -> MainProcess {
                         }
                     }
 
-                    // We remove all dead sinks from the sink roster.
+                    // We remove all dead sinks from the sink roaster.
                     if !deads.is_empty() {
                         sinks.retain(|s| !deads.contains(&s.id()));
                         deads.clear();
@@ -160,6 +171,11 @@ async fn main() {
     let mut conf = Configuration::new();
 
     conf.register_sink(SinkConfig::new("console"), Console);
+    conf.register_source(
+        Origin::new("host"),
+        Disks::new(vec!["/dev/nvme0n1".to_string()]),
+    );
+
     let process = start_main_process(conf);
 
     process.wait_until_complete().await;
