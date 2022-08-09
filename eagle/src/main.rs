@@ -89,13 +89,16 @@ impl Configuration {
         }
     }
 
-    pub fn register_source<S>(&mut self, origin: Origin, source: S)
+    pub fn register_source<S>(&mut self, origin: Origin, source: S) -> SourceId
     where
         S: Source + Send + 'static,
     {
+        let id = SourceId(origin.id);
         let state = spawn_source(origin, self.endpoint.clone(), source);
 
         self.sources.push(state);
+
+        id
     }
 
     pub fn register_sink<S>(&mut self, config: SinkConfig, sink: S)
