@@ -11,7 +11,7 @@ features = ["v4"]
 
 [dependencies.tokio]
 version = "1"
-features = ["macros", "time", "rt-multi-thread"]
+features = ["macros", "time", "rt-multi-thread", "sync"]
 
 [dependencies.eagle-core]
 path = "../eagle-core"

@@ -1,3 +1,5 @@
+pub mod config;
+
 use futures::{channel::mpsc, SinkExt};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -147,5 +149,5 @@ pub trait MetricSink {
 
 #[async_trait::async_trait]
 pub trait Source {
-    async fn produce(self, client: EagleClient);
+    async fn produce(&mut self, client: EagleClient);
 }

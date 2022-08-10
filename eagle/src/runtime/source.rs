@@ -1,18 +1,16 @@
 use std::sync::Arc;
 
-use eagle_core::{EagleClient, EagleEndpoint, Origin, Source};
+use eagle_core::{config::SourceDecl, EagleClient, EagleEndpoint, Origin};
 use tokio::task::JoinHandle;
 
 pub struct SourceState {
-    origin: Arc<Origin>,
-    handle: JoinHandle<()>,
+    pub origin: Arc<Origin>,
+    pub handle: JoinHandle<()>,
 }
 
-pub fn spawn_source<S>(origin: Origin, endpoint: EagleEndpoint, source: S) -> SourceState
-where
-    S: Source + Send + 'static,
-{
-    let origin = Arc::new(origin);
+pub fn spawn_source(decl: SourceDecl, endpoint: EagleEndpoint) -> SourceState {
+    let mut source = decl.source;
+    let origin = Arc::new(decl.origin);
     let cloned_origin = origin.clone();
 
     let handle = tokio::spawn(async move {

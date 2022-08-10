@@ -16,7 +16,7 @@ impl Disks {
 
 #[async_trait::async_trait]
 impl Source for Disks {
-    async fn produce(self, client: EagleClient) {
+    async fn produce(&mut self, client: EagleClient) {
         let mut clock = tokio::time::interval(Duration::from_secs(3));
 
         loop {

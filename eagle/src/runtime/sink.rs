@@ -1,9 +1,10 @@
 use std::{sync::Arc, time::Instant};
 
-use eagle_core::{Metric, MetricEvent, MetricFilter, MetricSink, Origin};
-use futures::{channel::mpsc, SinkExt, StreamExt};
-use tokio::task::JoinHandle;
-use tokio::time::Duration;
+use eagle_core::{
+    config::{SinkConfig, SinkDecl},
+    Metric, MetricEvent, Origin,
+};
+use tokio::{sync::mpsc, task::JoinHandle, time::Duration};
 use uuid::Uuid;
 
 enum Msg {
@@ -30,12 +31,14 @@ impl SinkClient {
         self.inner.clone().send(Msg::Tick).await.is_ok()
     }
 
-    pub async fn shutdown(mut self) {
+    pub async fn shutdown(self) {
         self.inner.send(Msg::Shutdown).await;
     }
 }
 
 pub struct SinkState {
+    id: Uuid,
+    name: String,
     client: SinkClient,
     config: SinkConfig,
     last_time: Option<Instant>,
@@ -44,13 +47,14 @@ pub struct SinkState {
 
 impl SinkState {
     pub fn id(&self) -> Uuid {
-        self.config.id
+        self.id
     }
 
     pub fn is_handled(&self, origin: &Origin, metric: &Metric) -> bool {
         self.config.filter.is_handled(origin, metric)
     }
 
+    // TODO - Consider not blocking in case on the queue is full.
     pub async fn send_metric(&mut self, origin: Arc<Origin>, metric: Arc<Metric>) -> bool {
         let result = self.client.send_metric(origin, metric).await;
         self.last_time = Some(Instant::now());
@@ -67,7 +71,7 @@ impl SinkState {
                     tracing::error!(
                         target = "main-process",
                         "Sink '{}' ended unexpectedly: {}",
-                        self.config.name,
+                        self.name,
                         e
                     );
                 }
@@ -76,51 +80,30 @@ impl SinkState {
                 tracing::error!(
                     target = "main-process",
                     "Sink '{}' timeout at shutting down in a timely manner",
-                    self.config.name
+                    self.name
                 );
             }
         }
     }
 
     pub fn name(&self) -> &str {
-        self.config.name.as_str()
+        self.name.as_str()
     }
 }
 
-pub struct SinkConfig {
-    id: Uuid,
-    name: String,
-    filter: MetricFilter,
-}
-
-impl SinkConfig {
-    pub fn new(name: impl AsRef<str>) -> Self {
-        let id = Uuid::new_v4();
-
-        Self {
-            id,
-            name: format!("sink-{}:{}", name.as_ref(), id),
-            filter: MetricFilter::no_filter(),
-        }
-    }
-
-    pub fn set_filter(self, filter: MetricFilter) -> Self {
-        Self { filter, ..self }
-    }
-}
-
-pub fn spawn_sink<S>(config: SinkConfig, mut sink: S) -> SinkState
-where
-    S: MetricSink + Send + 'static,
-{
+pub fn spawn_sink(decl: SinkDecl) -> SinkState {
     let (inner, mut recv) = mpsc::channel(500);
+    let id = decl.id;
+    let name = decl.name.clone();
+    let cloned_name = decl.name.clone();
+    let config = decl.config;
+    let mut sink = decl.sink;
     let client = SinkClient { inner };
-    let name = config.name.to_string();
     let handle = tokio::spawn(async move {
         let mut errored = true;
-        tracing::info!(target = name.as_str(), "Sink started");
+        tracing::info!(target = decl.name.as_str(), "Sink started");
 
-        while let Some(msg) = recv.next().await {
+        while let Some(msg) = recv.recv().await {
             match msg {
                 Msg::Metric(o, m) => {
                     sink.process(MetricEvent::Metric {
@@ -154,9 +137,11 @@ where
     });
 
     SinkState {
-        config,
         client,
         handle,
         last_time: None,
+        id,
+        name: cloned_name,
+        config,
     }
 }
