@@ -1,7 +1,7 @@
 use eagle::{
     engines::VSpec,
     sinks::Console,
-    sources::{Disks, Load},
+    sources::{Disks, Load, Memory},
 };
 use eagle_core::config::{Configuration, SinkConfig, SourceConfig};
 
@@ -14,7 +14,8 @@ async fn main() {
             SourceConfig::default(),
             Disks::new(vec!["nvme0n1".to_string()]),
         )
-        .register_source("load", SourceConfig::default(), Load);
+        .register_source("load", SourceConfig::default(), Load)
+        .register_source("memory", SourceConfig::default(), Memory);
 
     let process = VSpec::start(conf);
 

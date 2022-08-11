@@ -1,3 +1,3 @@
 pub mod host;
 
-pub use host::{Disks, Load};
+pub use host::{Disks, Load, Memory};

@@ -15,7 +15,7 @@ features = ["macros", "time", "rt-multi-thread", "sync"]
 
 [dependencies.heim]
 version = "0.1.0-rc.1"
-features = ["cpu"]
+features = ["cpu", "memory"]
 
 [dependencies.eagle-core]
 path = "../eagle-core"
@@ -24,5 +24,6 @@ path = "../eagle-core"
 async-trait = "*"
 futures = "*"
 heim-disk = "0.1.0-rc.1"
+heim-memory = "0.1.0-rc.1"
 heim-cpu = "0.1.0-rc.1"
 tracing = "0.1"
