@@ -25,7 +25,7 @@ impl Source for Disks {
                 Err(e) => {
                     tracing::error!(
                         target = client.origin().instance_id(),
-                        "Unexpected error: {}",
+                        "Unexpected error when loading disk info: {}",
                         e
                     );
                     // TODO - should decide what we should do in this case.

@@ -4,7 +4,12 @@ use eagle_core::{
     config::{SinkConfig, SinkDecl},
     Metric, MetricEvent, Origin,
 };
-use tokio::{runtime::{Runtime, Handle}, sync::mpsc, task::JoinHandle, time::Duration};
+use tokio::{
+    runtime::{Handle, Runtime},
+    sync::mpsc,
+    task::JoinHandle,
+    time::Duration,
+};
 use uuid::Uuid;
 
 enum Msg {

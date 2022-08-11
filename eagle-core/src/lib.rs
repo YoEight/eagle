@@ -136,7 +136,7 @@ impl MetricBuilder {
         Self {
             name: name.as_ref().to_string(),
             value,
-            r#type: MetricType::Counter,
+            r#type: MetricType::Gauge,
             category: category.as_ref().to_string(),
             tags: Default::default(),
             timestamp: Utc::now(),
@@ -151,10 +151,7 @@ impl MetricBuilder {
     }
 
     pub fn tags(self, tags: BTreeMap<String, String>) -> Self {
-        Self {
-            tags,
-            ..self
-        }
+        Self { tags, ..self }
     }
 
     pub fn build(self) -> Metric {
