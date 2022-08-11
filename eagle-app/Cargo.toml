@@ -1,0 +1,22 @@
+[package]
+name = "eagle-app"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "eagle"
+path = "src/main.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.eagle]
+path = "../eagle"
+
+[dependencies.eagle-core]
+path = "../eagle-core"
+
+[dependencies.tokio]
+version = "1.20"
+features = ["rt-multi-thread", "macros"]
+
+[dependencies]

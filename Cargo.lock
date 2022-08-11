@@ -201,6 +201,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "eagle-app"
+version = "0.1.0"
+dependencies = [
+ "eagle",
+ "eagle-core",
+ "tokio",
+]
+
+[[package]]
 name = "eagle-core"
 version = "0.1.0"
 dependencies = [

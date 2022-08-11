@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "eagle",
-    "eagle-core"
+    "eagle-core",
+    "eagle-app",
 ]

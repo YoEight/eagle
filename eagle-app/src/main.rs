@@ -1,12 +1,5 @@
-mod engines;
-mod sinks;
-mod sources;
-
-use engines::VSpec;
-
+use eagle::{engines::VSpec, sinks::Console, sources::Disks};
 use eagle_core::config::{Configuration, SinkConfig, SourceConfig};
-use sinks::Console;
-use sources::Disks;
 
 #[tokio::main]
 async fn main() {
