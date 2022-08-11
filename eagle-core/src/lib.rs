@@ -1,7 +1,7 @@
 pub mod config;
 
-use futures::{channel::mpsc, SinkExt};
 use std::sync::Arc;
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -14,21 +14,25 @@ impl EagleEndpoint {
         Self { inner }
     }
 
-    pub async fn send_metric(&self, origin: Arc<Origin>, metric: Metric) -> bool {
-        self.send_metrics(origin, vec![metric]).await
+    pub fn send_metric(&self, origin: Arc<Origin>, metric: Metric) -> bool {
+        self.send_metrics(origin, vec![metric])
     }
 
-    pub async fn send_metrics(&self, origin: Arc<Origin>, metrics: Vec<Metric>) -> bool {
-        let msgs = metrics.into_iter().map(|m| {
-            Ok(EagleEvent {
-                origin: origin.clone(),
-                event: Event::Metric(m),
-            })
-        });
+    pub fn send_metrics(&self, origin: Arc<Origin>, metrics: Vec<Metric>) -> bool {
+        for metric in metrics {
+            if self
+                .inner
+                .send(EagleEvent {
+                    origin: origin.clone(),
+                    event: Event::Metric(metric),
+                })
+                .is_err()
+            {
+                return false;
+            }
+        }
 
-        let mut msgs = futures::stream::iter(msgs);
-
-        self.inner.clone().send_all(&mut msgs).await.is_ok()
+        true
     }
 }
 
@@ -39,13 +43,11 @@ pub struct EagleClient {
 
 impl EagleClient {
     pub async fn send_metric(&self, metric: Metric) -> bool {
-        self.endpoint.send_metric(self.origin.clone(), metric).await
+        self.endpoint.send_metric(self.origin.clone(), metric)
     }
 
     pub async fn send_metrics(&self, metrics: Vec<Metric>) -> bool {
-        self.endpoint
-            .send_metrics(self.origin.clone(), metrics)
-            .await
+        self.endpoint.send_metrics(self.origin.clone(), metrics)
     }
 }
 

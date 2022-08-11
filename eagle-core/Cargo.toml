@@ -8,6 +8,9 @@ edition = "2021"
 version = "*"
 features = ["v4"]
 
+[dependencies.tokio]
+version = "*"
+features = ["sync"]
+
 [dependencies]
 async-trait = "*"
-futures = "*"

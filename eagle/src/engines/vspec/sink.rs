@@ -4,7 +4,7 @@ use eagle_core::{
     config::{SinkConfig, SinkDecl},
     Metric, MetricEvent, Origin,
 };
-use tokio::{sync::mpsc, task::JoinHandle, time::Duration};
+use tokio::{runtime::{Runtime, Handle}, sync::mpsc, task::JoinHandle, time::Duration};
 use uuid::Uuid;
 
 enum Msg {
@@ -91,7 +91,7 @@ impl SinkState {
     }
 }
 
-pub fn spawn_sink(decl: SinkDecl) -> SinkState {
+pub fn spawn_sink(handle: &Handle, decl: SinkDecl) -> SinkState {
     let (inner, mut recv) = mpsc::channel(500);
     let id = decl.id;
     let name = decl.name.clone();
@@ -99,7 +99,7 @@ pub fn spawn_sink(decl: SinkDecl) -> SinkState {
     let config = decl.config;
     let mut sink = decl.sink;
     let client = SinkClient { inner };
-    let handle = tokio::spawn(async move {
+    let handle = handle.spawn(async move {
         let mut errored = true;
         tracing::info!(target = decl.name.as_str(), "Sink started");
 
