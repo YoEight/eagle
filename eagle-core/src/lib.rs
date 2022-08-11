@@ -1,6 +1,7 @@
 pub mod config;
 
-use std::sync::Arc;
+use chrono::{DateTime, Utc};
+use std::{collections::BTreeMap, sync::Arc};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -49,6 +50,10 @@ impl EagleClient {
     pub async fn send_metrics(&self, metrics: Vec<Metric>) -> bool {
         self.endpoint.send_metrics(self.origin.clone(), metrics)
     }
+
+    pub fn origin(&self) -> &Origin {
+        self.origin.as_ref()
+    }
 }
 
 #[derive(Debug)]
@@ -69,6 +74,10 @@ impl Origin {
             instance_id,
         }
     }
+
+    pub fn instance_id(&self) -> &str {
+        self.instance_id.as_str()
+    }
 }
 
 #[derive(Debug)]
@@ -84,13 +93,80 @@ pub enum Event {
     Shutdown,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum MetricType {
+    Counter,
+    Gauge,
+}
+
 /// We should have Metric and Runtime related metric info like
 /// what source generated the metric.
 #[derive(Debug)]
 pub struct Metric {
     pub name: String,
     pub value: f64,
-    // TODO - Add tags, timestamp and stuff.
+    pub r#type: MetricType,
+    pub category: String,
+    pub tags: BTreeMap<String, String>,
+    pub timestamp: DateTime<Utc>,
+}
+
+pub struct MetricBuilder {
+    name: String,
+    value: f64,
+    r#type: MetricType,
+    category: String,
+    tags: BTreeMap<String, String>,
+    timestamp: DateTime<Utc>,
+}
+
+impl MetricBuilder {
+    pub fn counter(category: impl AsRef<str>, name: impl AsRef<str>, value: f64) -> Self {
+        Self {
+            name: name.as_ref().to_string(),
+            value,
+            r#type: MetricType::Counter,
+            category: category.as_ref().to_string(),
+            tags: Default::default(),
+            timestamp: Utc::now(),
+        }
+    }
+
+    pub fn gauge(category: impl AsRef<str>, name: impl AsRef<str>, value: f64) -> Self {
+        Self {
+            name: name.as_ref().to_string(),
+            value,
+            r#type: MetricType::Counter,
+            category: category.as_ref().to_string(),
+            tags: Default::default(),
+            timestamp: Utc::now(),
+        }
+    }
+
+    pub fn add_tag(mut self, name: impl AsRef<str>, value: impl AsRef<str>) -> Self {
+        self.tags
+            .insert(name.as_ref().to_string(), value.as_ref().to_string());
+
+        self
+    }
+
+    pub fn tags(self, tags: BTreeMap<String, String>) -> Self {
+        Self {
+            tags,
+            ..self
+        }
+    }
+
+    pub fn build(self) -> Metric {
+        Metric {
+            name: self.name,
+            value: self.value,
+            r#type: self.r#type,
+            category: self.category,
+            tags: self.tags,
+            timestamp: self.timestamp,
+        }
+    }
 }
 
 #[derive(Clone)]

@@ -9,11 +9,10 @@ impl MetricSink for Console {
             MetricEvent::Tick => {}
             MetricEvent::Metric { origin, metric } => {
                 println!(
-                    "Metric '{name}', Source '{source}', InstanceId '{instance_id}', Value: {value}",
-                    name = metric.name,
+                    "Source '{source}', InstanceId '{instance_id}', Metric: {metric:?}",
                     source = origin.name,
                     instance_id = origin.instance_id,
-                    value = metric.value,
+                    metric = metric,
                 );
             }
         }

@@ -6,7 +6,7 @@ async fn main() {
     let conf = Configuration::default()
         .register_sink("console", SinkConfig::default(), Console)
         .register_source(
-            "host",
+            "disks",
             SourceConfig::default(),
             Disks::new(vec!["nvme0n1".to_string()]),
         );
