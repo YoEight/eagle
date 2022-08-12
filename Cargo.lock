@@ -293,6 +293,7 @@ dependencies = [
 name = "eagle-contrib"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "eagle-core",
  "prost",
  "prost-derive",

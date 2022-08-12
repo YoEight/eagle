@@ -21,6 +21,7 @@ features = ["prost", "tls", "transport", "codegen", "tls-roots"]
 prost = "0.9"
 prost-types = "0.9"
 prost-derive = "0.9"
+async-trait = "*"
 
 [build-dependencies.tonic-build]
 version = "0.6"
