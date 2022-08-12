@@ -5,7 +5,23 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# We only uncomment when we want to regenerate gRPC files, otherwise it forces the user to have
+# their dev environment set up.
+# build = "codegen.rs"
+
 [dependencies.eagle-core]
 path = "../eagle-core"
 
+[dependencies.tonic]
+version = "0.6"
+default-features = false
+features = ["prost", "tls", "transport", "codegen", "tls-roots"]
+
 [dependencies]
+prost = "0.9"
+prost-types = "0.9"
+prost-derive = "0.9"
+
+[build-dependencies.tonic-build]
+version = "0.6"
+features = ["prost"]
