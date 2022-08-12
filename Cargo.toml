@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "eagle",
-    "eagle-core",
     "eagle-app",
+    "eagle-core",
+    "eagle-contrib",
 ]

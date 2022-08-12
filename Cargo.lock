@@ -242,6 +242,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "eagle-contrib"
+version = "0.1.0"
+dependencies = [
+ "eagle-core",
+]
+
+[[package]]
 name = "eagle-core"
 version = "0.1.0"
 dependencies = [
