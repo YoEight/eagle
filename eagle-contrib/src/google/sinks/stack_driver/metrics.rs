@@ -66,7 +66,7 @@ const DURATION_25_HOURS: Duration = Duration::from_secs(25 * 3_600);
 impl MetricSink for StackDriverMetrics {
     async fn process(&mut self, event: MetricEvent) {
         if let Some(metric) = event.metric() {
-            if self.started.elapsed() > DURATION_25_HOURS {
+            if self.started.elapsed() >= DURATION_25_HOURS {
                 self.started.reset();
             }
 
