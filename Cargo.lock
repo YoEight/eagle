@@ -294,10 +294,12 @@ name = "eagle-contrib"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "eagle-core",
  "prost",
  "prost-derive",
  "prost-types",
+ "tokio",
  "tonic",
  "tonic-build",
 ]

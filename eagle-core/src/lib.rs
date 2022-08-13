@@ -175,6 +175,16 @@ pub enum MetricEvent {
     Tick,
 }
 
+impl MetricEvent {
+    pub fn metric(self) -> Option<Arc<Metric>> {
+        if let MetricEvent::Metric { metric, .. } = self {
+            return Some(metric);
+        }
+
+        None
+    }
+}
+
 pub struct MetricFilter {
     inner: Box<dyn Fn(&Origin, &Metric) -> bool + Send + Sync>,
 }

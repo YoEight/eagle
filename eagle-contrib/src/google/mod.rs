@@ -1,3 +1,4 @@
+
 mod generated;
 mod sinks;
 
@@ -7,4 +8,14 @@ mod api {
 
 mod rpc {
     pub use crate::google::generated::google_rpc::*;
+}
+
+use prost_types::Timestamp;
+use chrono::{DateTime, Utc};
+
+pub(crate) fn to_timestamp(time: DateTime<Utc>) -> Timestamp {
+    Timestamp {
+        seconds: time.timestamp(),
+        nanos: time.timestamp_nanos() as i32,
+    }
 }

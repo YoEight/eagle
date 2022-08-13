@@ -17,11 +17,16 @@ version = "0.6"
 default-features = false
 features = ["prost", "tls", "transport", "codegen", "tls-roots"]
 
+[dependencies.tokio]
+version = "1"
+features = ["time"]
+
 [dependencies]
 prost = "0.9"
 prost-types = "0.9"
 prost-derive = "0.9"
 async-trait = "*"
+chrono = "0.4"
 
 [build-dependencies.tonic-build]
 version = "0.6"
