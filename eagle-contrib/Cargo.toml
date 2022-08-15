@@ -27,6 +27,8 @@ prost-types = "0.9"
 prost-derive = "0.9"
 async-trait = "*"
 chrono = "0.4"
+gouth = "0.2"
+eyre = "0.6"
 
 [build-dependencies.tonic-build]
 version = "0.6"

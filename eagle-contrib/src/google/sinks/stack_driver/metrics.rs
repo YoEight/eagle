@@ -9,10 +9,12 @@ use crate::google::generated::{
 
 use super::types::StackDriverMetricsOptions;
 use chrono::{DateTime, Utc};
+use eyre::WrapErr;
 use std::{
     collections::HashMap,
     time::{Duration, Instant},
 };
+use tonic::transport::{Channel, ClientTlsConfig};
 
 struct CachedDate {
     time: DateTime<Utc>,
@@ -46,16 +48,27 @@ pub struct StackDriverMetrics {
     clock: Instant,
     buffer: HashMap<String, TimeSeries>,
     started: CachedDate,
+    channel: Channel,
 }
 
 impl StackDriverMetrics {
-    pub fn new(options: StackDriverMetricsOptions) -> Self {
-        Self {
+    pub fn new(options: StackDriverMetricsOptions) -> eyre::Result<Self> {
+        let uri = "https://monitoring.googleapis.com"
+            .parse()
+            .wrap_err("Error when parsing GCP monitoring URL")?;
+
+        let channel = Channel::builder(uri)
+            .tls_config(ClientTlsConfig::new())?
+            .connect()
+            .await?;
+
+        Ok(Self {
             options,
             clock: Instant::now(),
             buffer: Default::default(),
             started: CachedDate::new(),
-        }
+            channel: todo!(),
+        })
     }
 }
 
