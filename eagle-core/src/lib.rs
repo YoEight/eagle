@@ -1,9 +1,11 @@
 pub mod config;
 
 use chrono::{DateTime, Utc};
+use futures::Stream;
 use std::{collections::BTreeMap, sync::Arc};
 use tokio::sync::mpsc;
 use uuid::Uuid;
+use eyre::WrapErr;
 
 #[derive(Clone)]
 pub struct EagleEndpoint {
@@ -227,9 +229,61 @@ impl MetricFilter {
     }
 }
 
+pub struct EagleStream<A> {
+    inner: mpsc::Receiver<EagleMsg<A>>,
+}
+
+impl<A> EagleStream<A> {
+    pub async fn recv(&mut self) -> Recv<A> {
+        if let Some(msg) = self.inner.recv().await {
+            return Recv::Available(msg);
+        }
+
+        Recv::Disconnected
+    }
+}
+
+pub enum EagleMsg<A> {
+    Msg(A),
+    Tick,
+    Shutdown,
+}
+
+pub enum Recv<A> {
+    Available(EagleMsg<A>),
+    Disconnected,
+}
+
+pub struct EagleSink<A> {
+    inner: mpsc::Sender<EagleMsg<A>>,
+}
+
+impl<A> EagleSink<A> {
+    pub async fn shutdown(&self) {
+        let _ = self.inner.send(EagleMsg::Shutdown).await;
+    }
+
+    pub async fn send_msg(&self, msg: A) -> bool {
+        self.inner.send(EagleMsg::Msg(msg)).await.is_ok()
+    }
+
+    pub async fn send_tick(&self) -> bool {
+        self.inner.send(EagleMsg::Tick).await.is_ok()
+    }
+}
+
+pub fn eagle_channel<A>(size: usize) -> (EagleSink<A>, EagleStream<A>) {
+    let (send_inner, recv_inner) = mpsc::channel(size);
+
+    (
+        EagleSink { inner: send_inner },
+        EagleStream { inner: recv_inner },
+    )
+}
+
 #[async_trait::async_trait]
 pub trait MetricSink {
-    async fn process(&mut self, event: MetricEvent);
+    async fn process(&mut self, stream: EagleStream<MetricEvent>);
 }
 
 #[async_trait::async_trait]

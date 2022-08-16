@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Instant};
 
 use eagle_core::{
     config::{SinkConfig, SinkDecl},
-    Metric, MetricEvent, Origin,
+    EagleSink, EagleStream, Metric, MetricEvent, Origin, eagle_channel,
 };
 use tokio::{
     runtime::{Handle, Runtime},
@@ -12,39 +12,10 @@ use tokio::{
 };
 use uuid::Uuid;
 
-enum Msg {
-    Metric(Arc<Origin>, Arc<Metric>),
-    Tick,
-    Shutdown,
-}
-
-#[derive(Clone)]
-pub struct SinkClient {
-    inner: mpsc::Sender<Msg>,
-}
-
-impl SinkClient {
-    pub async fn send_metric(&self, origin: Arc<Origin>, metric: Arc<Metric>) -> bool {
-        self.inner
-            .clone()
-            .send(Msg::Metric(origin, metric))
-            .await
-            .is_ok()
-    }
-
-    pub async fn send_tick(&self) -> bool {
-        self.inner.clone().send(Msg::Tick).await.is_ok()
-    }
-
-    pub async fn shutdown(self) {
-        self.inner.send(Msg::Shutdown).await;
-    }
-}
-
 pub struct SinkState {
     id: Uuid,
     name: String,
-    client: SinkClient,
+    client: EagleSink<MetricEvent>,
     config: SinkConfig,
     last_time: Option<Instant>,
     handle: JoinHandle<()>,
@@ -61,7 +32,11 @@ impl SinkState {
 
     // TODO - Consider not blocking in case on the queue is full.
     pub async fn send_metric(&mut self, origin: Arc<Origin>, metric: Arc<Metric>) -> bool {
-        let result = self.client.send_metric(origin, metric).await;
+        let result = self.client.send_msg(MetricEvent::Metric {
+            origin: origin.clone(),
+            metric: metric.clone(),
+        }).await;
+
         self.last_time = Some(Instant::now());
 
         result
@@ -103,7 +78,7 @@ pub fn spawn_sink(handle: &Handle, decl: SinkDecl) -> SinkState {
     let cloned_name = decl.name.clone();
     let config = decl.config;
     let mut sink = decl.sink;
-    let client = SinkClient { inner };
+    let (client, eagle_stream) = eagle_channel(500);
     let handle = handle.spawn(async move {
         let mut errored = true;
         tracing::info!(target = decl.name.as_str(), "Sink started");
@@ -111,11 +86,20 @@ pub fn spawn_sink(handle: &Handle, decl: SinkDecl) -> SinkState {
         while let Some(msg) = recv.recv().await {
             match msg {
                 Msg::Metric(o, m) => {
-                    sink.process(MetricEvent::Metric {
+                    let event = MetricEvent::Metric {
                         origin: o.clone(),
                         metric: m.clone(),
-                    })
-                    .await;
+                    };
+
+                    if publisher.send(event).is_err() {
+                        tracing::error!(
+                            target = name.as_str(),
+                            "Sink '{}' unexpectedly shutdown",
+                            name
+                        );
+
+                        break;
+                    }
 
                     tracing::debug!(target = name.as_str(), "Metric '{}' processed", m.name);
                 }

@@ -53,14 +53,14 @@ pub struct StackDriverMetrics {
 
 impl StackDriverMetrics {
     pub fn new(options: StackDriverMetricsOptions) -> eyre::Result<Self> {
-        let uri = "https://monitoring.googleapis.com"
-            .parse()
-            .wrap_err("Error when parsing GCP monitoring URL")?;
+        // let uri = "https://monitoring.googleapis.com"
+        //     .parse()
+        //     .wrap_err("Error when parsing GCP monitoring URL")?;
 
-        let channel = Channel::builder(uri)
-            .tls_config(ClientTlsConfig::new())?
-            .connect()
-            .await?;
+        // let channel = Channel::builder(uri)
+        //     .tls_config(ClientTlsConfig::new())?
+        //     .connect()
+        //     .await?;
 
         Ok(Self {
             options,
