@@ -1,4 +1,3 @@
-
 mod generated;
 mod sinks;
 
@@ -10,8 +9,8 @@ mod rpc {
     pub use crate::google::generated::google_rpc::*;
 }
 
-use prost_types::Timestamp;
 use chrono::{DateTime, Utc};
+use prost_types::Timestamp;
 
 pub(crate) fn to_timestamp(time: DateTime<Utc>) -> Timestamp {
     Timestamp {

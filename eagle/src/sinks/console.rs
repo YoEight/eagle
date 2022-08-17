@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use eagle_core::{EagleMsg, EagleStream, MetricEvent, MetricSink, Recv, Origin};
+use eagle_core::{EagleMsg, EagleStream, MetricEvent, MetricSink, Origin, Recv};
 
 pub struct Console;
 
