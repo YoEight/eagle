@@ -1,11 +1,11 @@
 pub mod config;
 
 use chrono::{DateTime, Utc};
+use eyre::WrapErr;
 use futures::Stream;
 use std::{collections::BTreeMap, sync::Arc};
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use eyre::WrapErr;
 
 #[derive(Clone)]
 pub struct EagleEndpoint {
@@ -169,22 +169,9 @@ impl MetricBuilder {
 }
 
 #[derive(Clone)]
-pub enum MetricEvent {
-    Metric {
-        origin: Arc<Origin>,
-        metric: Arc<Metric>,
-    },
-    Tick,
-}
-
-impl MetricEvent {
-    pub fn metric(self) -> Option<Arc<Metric>> {
-        if let MetricEvent::Metric { metric, .. } = self {
-            return Some(metric);
-        }
-
-        None
-    }
+pub struct MetricEvent {
+    pub origin: Arc<Origin>,
+    pub metric: Arc<Metric>,
 }
 
 pub struct MetricFilter {
@@ -254,6 +241,7 @@ pub enum Recv<A> {
     Disconnected,
 }
 
+#[derive(Clone)]
 pub struct EagleSink<A> {
     inner: mpsc::Sender<EagleMsg<A>>,
 }
@@ -283,7 +271,7 @@ pub fn eagle_channel<A>(size: usize) -> (EagleSink<A>, EagleStream<A>) {
 
 #[async_trait::async_trait]
 pub trait MetricSink {
-    async fn process(&mut self, stream: EagleStream<MetricEvent>);
+    async fn process(&mut self, stream: EagleStream<MetricEvent>) -> eyre::Result<()>;
 }
 
 #[async_trait::async_trait]

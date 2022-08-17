@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Instant};
 
 use eagle_core::{
     config::{SinkConfig, SinkDecl},
-    EagleSink, EagleStream, Metric, MetricEvent, Origin, eagle_channel,
+    eagle_channel, EagleSink, EagleStream, Metric, MetricEvent, Origin,
 };
 use tokio::{
     runtime::{Handle, Runtime},
@@ -32,10 +32,7 @@ impl SinkState {
 
     // TODO - Consider not blocking in case on the queue is full.
     pub async fn send_metric(&mut self, origin: Arc<Origin>, metric: Arc<Metric>) -> bool {
-        let result = self.client.send_msg(MetricEvent::Metric {
-            origin: origin.clone(),
-            metric: metric.clone(),
-        }).await;
+        let result = self.client.send_msg(MetricEvent { origin, metric }).await;
 
         self.last_time = Some(Instant::now());
 
@@ -71,57 +68,34 @@ impl SinkState {
     }
 }
 
-pub fn spawn_sink(handle: &Handle, decl: SinkDecl) -> SinkState {
-    let (inner, mut recv) = mpsc::channel(500);
+pub fn spawn_sink(handle: &Handle, mut decl: SinkDecl) -> SinkState {
     let id = decl.id;
-    let name = decl.name.clone();
     let cloned_name = decl.name.clone();
     let config = decl.config;
-    let mut sink = decl.sink;
     let (client, eagle_stream) = eagle_channel(500);
-    let handle = handle.spawn(async move {
-        let mut errored = true;
-        tracing::info!(target = decl.name.as_str(), "Sink started");
 
-        while let Some(msg) = recv.recv().await {
-            match msg {
-                Msg::Metric(o, m) => {
-                    let event = MetricEvent::Metric {
-                        origin: o.clone(),
-                        metric: m.clone(),
-                    };
+    let client_cloned = client.clone();
+    handle.spawn(async move {
+        let mut clock = tokio::time::interval(Duration::from_millis(30));
 
-                    if publisher.send(event).is_err() {
-                        tracing::error!(
-                            target = name.as_str(),
-                            "Sink '{}' unexpectedly shutdown",
-                            name
-                        );
-
-                        break;
-                    }
-
-                    tracing::debug!(target = name.as_str(), "Metric '{}' processed", m.name);
-                }
-
-                Msg::Tick => {
-                    tracing::debug!(target = name.as_str(), "Ticking completed");
-                }
-
-                Msg::Shutdown => {
-                    tracing::info!(
-                        target = name.as_str(),
-                        "Sink '{}' shutdown successfully",
-                        name
-                    );
-                    errored = false;
-                    break;
-                }
+        loop {
+            clock.tick().await;
+            if !client_cloned.send_tick().await {
+                break;
             }
         }
+    });
 
-        if errored {
-            tracing::error!(target = name.as_str(), "Sink exited unexpectedly");
+    let handle = handle.spawn(async move {
+        tracing::info!(target = decl.name.as_str(), "Sink started");
+        if let Err(e) = decl.sink.process(eagle_stream).await {
+            tracing::error!(
+                target = decl.name.as_str(),
+                "Sink exited with an unexpected error: {}",
+                e
+            );
+        } else {
+            tracing::info!(target = decl.name.as_str(), "Sink exited");
         }
     });
 

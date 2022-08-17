@@ -22,6 +22,7 @@ impl Resource {
 }
 
 pub struct StackDriverMetricsOptions {
+    pub(crate) project_id: String,
     pub(crate) credentials_path: Option<String>,
     pub(crate) batch_size: usize,
     pub(crate) period: Duration,
@@ -30,9 +31,10 @@ pub struct StackDriverMetricsOptions {
     pub(crate) resource_mappings: HashMap<String, Resource>,
 }
 
-impl Default for StackDriverMetricsOptions {
-    fn default() -> Self {
+impl StackDriverMetricsOptions {
+    pub fn new(project_id: impl AsRef<str>) -> Self {
         Self {
+            project_id: project_id.as_ref().to_string(),
             credentials_path: None,
             batch_size: 200,
             period: Duration::from_secs(10),
@@ -44,9 +46,7 @@ impl Default for StackDriverMetricsOptions {
             resource_mappings: Default::default(),
         }
     }
-}
 
-impl StackDriverMetricsOptions {
     pub fn credentials(self, path: impl AsRef<str>) -> Self {
         Self {
             credentials_path: Some(path.as_ref().to_string()),
