@@ -1,5 +1,3 @@
-use uuid::Uuid;
-
 use crate::{MetricFilter, MetricSink, Origin, Source};
 
 pub struct SinkConfig {
@@ -15,8 +13,7 @@ impl Default for SinkConfig {
 }
 
 pub struct SinkDecl {
-    pub id: Uuid,
-    pub name: String,
+    pub origin: Origin,
     pub config: SinkConfig,
     pub sink: Box<dyn MetricSink + Send + 'static>,
 }
@@ -62,8 +59,7 @@ impl Configuration {
         S: MetricSink + Send + 'static,
     {
         self.sinks.push(SinkDecl {
-            id: Uuid::new_v4(),
-            name: name.as_ref().to_string(),
+            origin: Origin::new(name),
             config,
             sink: Box::new(sink),
         });

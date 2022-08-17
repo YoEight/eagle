@@ -1,4 +1,4 @@
-use eagle_core::{EagleMsg, EagleStream, MetricEvent, MetricSink, MetricType, Recv};
+use eagle_core::{EagleMsg, EagleStream, MetricEvent, MetricSink, MetricType, Origin, Recv};
 
 use crate::google::generated::{
     google_api::{
@@ -22,7 +22,7 @@ use tonic::{
     metadata::{Ascii, MetadataValue},
     service::Interceptor,
     transport::{Channel, ClientTlsConfig},
-    Request, Status,
+    Code, Request, Status,
 };
 
 struct CachedDate {
@@ -106,7 +106,11 @@ const DURATION_25_HOURS: Duration = Duration::from_secs(25 * 3_600);
 
 #[async_trait::async_trait]
 impl MetricSink for StackDriverMetrics {
-    async fn process(&mut self, mut stream: EagleStream<MetricEvent>) -> eyre::Result<()> {
+    async fn process(
+        &mut self,
+        origin: Arc<Origin>,
+        mut stream: EagleStream<MetricEvent>,
+    ) -> eyre::Result<()> {
         let mut clock = Instant::now();
         let mut started = CachedDate::new();
         let mut buffer = HashMap::with_capacity(self.options.batch_size);
@@ -213,12 +217,25 @@ impl MetricSink for StackDriverMetrics {
                     }))
                     .await
                 {
-                    attempts += 1;
-                    continue;
-                }
-            }
+                    if status.code() == Code::Internal || status.code() == Code::Unknown {
+                        attempts += 1;
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        continue;
+                    }
 
-            // TODO - Ready to send to GCP here.
+                    tracing::error!(
+                        target = origin.instance_id(),
+                        "Error when sending time_series: {}",
+                        status
+                    );
+
+                    counter!("stackdriver.metrics.failures", 1);
+                    break;
+                }
+
+                counter!("stackdriver.metrics.successes", 1);
+                break;
+            }
 
             clock = Instant::now();
         }

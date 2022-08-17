@@ -29,6 +29,8 @@ async-trait = "*"
 chrono = "0.4"
 gouth = "0.2"
 eyre = "0.6"
+tracing = "0.1"
+metrics = "0.20"
 
 [build-dependencies.tonic-build]
 version = "0.6"

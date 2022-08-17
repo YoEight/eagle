@@ -1,10 +1,16 @@
-use eagle_core::{EagleMsg, EagleStream, MetricEvent, MetricSink, Recv};
+use std::sync::Arc;
+
+use eagle_core::{EagleMsg, EagleStream, MetricEvent, MetricSink, Recv, Origin};
 
 pub struct Console;
 
 #[async_trait::async_trait]
 impl MetricSink for Console {
-    async fn process(&mut self, mut stream: EagleStream<MetricEvent>) -> eyre::Result<()> {
+    async fn process(
+        &mut self,
+        _: Arc<Origin>,
+        mut stream: EagleStream<MetricEvent>,
+    ) -> eyre::Result<()> {
         while let Recv::Available(msg) = stream.recv().await {
             match msg {
                 EagleMsg::Tick => {}

@@ -1,8 +1,6 @@
 pub mod config;
 
 use chrono::{DateTime, Utc};
-use eyre::WrapErr;
-use futures::Stream;
 use std::{collections::BTreeMap, sync::Arc};
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -271,7 +269,11 @@ pub fn eagle_channel<A>(size: usize) -> (EagleSink<A>, EagleStream<A>) {
 
 #[async_trait::async_trait]
 pub trait MetricSink {
-    async fn process(&mut self, stream: EagleStream<MetricEvent>) -> eyre::Result<()>;
+    async fn process(
+        &mut self,
+        origin: Arc<Origin>,
+        stream: EagleStream<MetricEvent>,
+    ) -> eyre::Result<()>;
 }
 
 #[async_trait::async_trait]

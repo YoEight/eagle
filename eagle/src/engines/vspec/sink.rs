@@ -6,15 +6,13 @@ use eagle_core::{
 };
 use tokio::{
     runtime::{Handle, Runtime},
-    sync::mpsc,
     task::JoinHandle,
     time::Duration,
 };
 use uuid::Uuid;
 
 pub struct SinkState {
-    id: Uuid,
-    name: String,
+    origin: Arc<Origin>,
     client: EagleSink<MetricEvent>,
     config: SinkConfig,
     last_time: Option<Instant>,
@@ -23,7 +21,7 @@ pub struct SinkState {
 
 impl SinkState {
     pub fn id(&self) -> Uuid {
-        self.id
+        self.origin.id
     }
 
     pub fn is_handled(&self, origin: &Origin, metric: &Metric) -> bool {
@@ -48,7 +46,7 @@ impl SinkState {
                     tracing::error!(
                         target = "main-process",
                         "Sink '{}' ended unexpectedly: {}",
-                        self.name,
+                        self.origin.instance_id(),
                         e
                     );
                 }
@@ -57,20 +55,20 @@ impl SinkState {
                 tracing::error!(
                     target = "main-process",
                     "Sink '{}' timeout at shutting down in a timely manner",
-                    self.name
+                    self.origin.instance_id(),
                 );
             }
         }
     }
 
     pub fn name(&self) -> &str {
-        self.name.as_str()
+        self.origin.instance_id()
     }
 }
 
 pub fn spawn_sink(handle: &Handle, mut decl: SinkDecl) -> SinkState {
-    let id = decl.id;
-    let cloned_name = decl.name.clone();
+    let sink_origin = Arc::new(decl.origin);
+    let origin = sink_origin.clone();
     let config = decl.config;
     let (client, eagle_stream) = eagle_channel(500);
 
@@ -87,24 +85,23 @@ pub fn spawn_sink(handle: &Handle, mut decl: SinkDecl) -> SinkState {
     });
 
     let handle = handle.spawn(async move {
-        tracing::info!(target = decl.name.as_str(), "Sink started");
-        if let Err(e) = decl.sink.process(eagle_stream).await {
+        tracing::info!(target = sink_origin.instance_id(), "Sink started");
+        if let Err(e) = decl.sink.process(sink_origin.clone(), eagle_stream).await {
             tracing::error!(
-                target = decl.name.as_str(),
+                target = sink_origin.instance_id(),
                 "Sink exited with an unexpected error: {}",
                 e
             );
         } else {
-            tracing::info!(target = decl.name.as_str(), "Sink exited");
+            tracing::info!(target = sink_origin.instance_id(), "Sink exited");
         }
     });
 
     SinkState {
+        origin,
         client,
         handle,
         last_time: None,
-        id,
-        name: cloned_name,
         config,
     }
 }
