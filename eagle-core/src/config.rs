@@ -40,12 +40,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub fn register_source<S>(
-        mut self,
-        name: impl AsRef<str>,
-        config: SourceConfig,
-        source: S,
-    ) -> Self
+    pub fn register_source<S>(&mut self, name: impl AsRef<str>, config: SourceConfig, source: S)
     where
         S: Source + Send + 'static,
     {
@@ -56,11 +51,9 @@ impl Configuration {
             config,
             source: Box::new(source),
         });
-
-        self
     }
 
-    pub fn register_sink<S>(mut self, name: impl AsRef<str>, config: SinkConfig, sink: S) -> Self
+    pub fn register_sink<S>(&mut self, name: impl AsRef<str>, config: SinkConfig, sink: S)
     where
         S: MetricSink + Send + 'static,
     {
@@ -69,7 +62,5 @@ impl Configuration {
             config,
             sink: Box::new(sink),
         });
-
-        self
     }
 }

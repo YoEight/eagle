@@ -22,5 +22,11 @@ path = "../eagle-google"
 version = "1.20"
 features = ["rt-multi-thread", "macros"]
 
+[dependencies.serde]
+version = "1"
+features = ["derive"]
+
 [dependencies]
 eyre = "0.6"
+toml = "0.5"
+structopt = "0.3"

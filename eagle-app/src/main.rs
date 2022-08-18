@@ -1,3 +1,5 @@
+mod config;
+
 use eagle::{
     engines::VSpec,
     sinks::Console,
@@ -8,26 +10,24 @@ use eagle_core::{
     MetricFilter,
 };
 use eagle_google::{sinks::StackDriverMetrics, StackDriverMetricsOptions};
+use eyre::WrapErr;
+use structopt::StructOpt;
+
+#[derive(StructOpt)]
+struct Args {
+    #[structopt(long, short, help = "File path of the configuration toml file")]
+    config: std::path::PathBuf,
+}
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let gcp_options = StackDriverMetricsOptions::new("project_id");
-    let conf = Configuration::default()
-        .register_sink("console", SinkConfig::default(), Console)
-        .register_sink(
-            "gcp_metrics",
-            SinkConfig::default().filter(MetricFilter::category_equals("host")),
-            StackDriverMetrics::new(gcp_options)?,
-        )
-        .register_source(
-            "disks",
-            SourceConfig::default(),
-            Disks::new(vec!["nvme0n1".to_string()]),
-        )
-        .register_source("load", SourceConfig::default(), Load)
-        .register_source("memory", SourceConfig::default(), Memory);
+    let args = Args::from_args();
+    let content = std::fs::read_to_string(args.config.as_path())
+        .wrap_err("Error when reading config file")?;
+    let config = toml::de::from_str::<config::Config>(content.as_str())
+        .wrap_err("Error when parsing config file")?;
 
-    let process = VSpec::start(conf);
+    let process = VSpec::start(config.build()?);
 
     process.wait_until_complete().await;
 
