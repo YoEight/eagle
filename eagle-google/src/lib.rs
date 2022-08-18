@@ -2,7 +2,10 @@
 extern crate metrics;
 
 mod generated;
-mod sinks;
+pub mod sinks;
+mod types;
+
+pub use types::{Resource, StackDriverMetricsOptions};
 
 mod api {
     pub use crate::generated::google_api::*;

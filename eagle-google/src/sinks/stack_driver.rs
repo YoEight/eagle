@@ -1,2 +1,1 @@
-mod metrics;
-mod types;
+pub mod metrics;

@@ -355,6 +355,8 @@ version = "0.1.0"
 dependencies = [
  "eagle",
  "eagle-core",
+ "eagle-google",
+ "eyre",
  "tokio",
 ]
 

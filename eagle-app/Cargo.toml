@@ -15,8 +15,12 @@ path = "../eagle"
 [dependencies.eagle-core]
 path = "../eagle-core"
 
+[dependencies.eagle-google]
+path = "../eagle-google"
+
 [dependencies.tokio]
 version = "1.20"
 features = ["rt-multi-thread", "macros"]
 
 [dependencies]
+eyre = "0.6"

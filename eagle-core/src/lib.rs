@@ -212,6 +212,17 @@ impl MetricFilter {
     pub fn source_name_ends_with(name: impl AsRef<str> + Send + Sync + 'static) -> Self {
         Self::filter_by_source_name(move |source_name| source_name.ends_with(name.as_ref()))
     }
+
+    pub fn filter_by_category<F>(fun: F) -> Self
+    where
+        F: Fn(&str) -> bool + Send + Sync + 'static,
+    {
+        Self::new(move |_, m| fun(m.category.as_str()))
+    }
+
+    pub fn category_equals(name: impl AsRef<str> + Send + Sync + 'static) -> Self {
+        Self::filter_by_source_name(move |category| category == name.as_ref())
+    }
 }
 
 pub struct EagleStream<A> {

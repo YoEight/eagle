@@ -10,7 +10,7 @@ use crate::generated::{
     },
 };
 
-use super::types::StackDriverMetricsOptions;
+use crate::types::StackDriverMetricsOptions;
 use chrono::{DateTime, Utc};
 use eyre::WrapErr;
 use std::{

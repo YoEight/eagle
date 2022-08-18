@@ -12,6 +12,12 @@ impl Default for SinkConfig {
     }
 }
 
+impl SinkConfig {
+    pub fn filter(self, filter: MetricFilter) -> Self {
+        Self { filter, ..self }
+    }
+}
+
 pub struct SinkDecl {
     pub origin: Origin,
     pub config: SinkConfig,
