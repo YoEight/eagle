@@ -1,6 +1,6 @@
 use eagle_core::{EagleMsg, EagleStream, MetricEvent, MetricSink, MetricType, Origin, Recv};
 
-use crate::google::generated::{
+use crate::generated::{
     google_api::{
         label_descriptor::ValueType, metric_descriptor::MetricKind, Metric, MonitoredResource,
     },
@@ -166,8 +166,8 @@ impl MetricSink for StackDriverMetrics {
                         MetricType::Counter => MetricKind::Cumulative,
                     };
 
-                    let start_time = crate::google::to_timestamp(started.time());
-                    let end_time = crate::google::to_timestamp(metric.timestamp);
+                    let start_time = crate::to_timestamp(started.time());
+                    let end_time = crate::to_timestamp(metric.timestamp);
 
                     buffer.insert(
                         metric_type.clone(),

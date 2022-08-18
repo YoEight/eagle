@@ -1,12 +1,15 @@
+#[macro_use]
+extern crate metrics;
+
 mod generated;
 mod sinks;
 
 mod api {
-    pub use crate::google::generated::google_api::*;
+    pub use crate::generated::google_api::*;
 }
 
 mod rpc {
-    pub use crate::google::generated::google_rpc::*;
+    pub use crate::generated::google_rpc::*;
 }
 
 use chrono::{DateTime, Utc};

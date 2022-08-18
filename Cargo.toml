@@ -3,5 +3,5 @@ members = [
     "eagle",
     "eagle-app",
     "eagle-core",
-    "eagle-contrib",
+    "eagle-google",
 ]

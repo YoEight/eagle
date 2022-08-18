@@ -359,7 +359,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "eagle-contrib"
+name = "eagle-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "eyre",
+ "futures",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "eagle-google"
 version = "0.1.0"
 dependencies = [
  "async-trait",
@@ -375,18 +387,6 @@ dependencies = [
  "tonic",
  "tonic-build",
  "tracing",
-]
-
-[[package]]
-name = "eagle-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "eyre",
- "futures",
- "tokio",
- "uuid",
 ]
 
 [[package]]
