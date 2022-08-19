@@ -11,7 +11,7 @@ use eagle_core::config::{Configuration, SinkConfig, SourceConfig};
 use eagle_google::sinks::StackDriverMetrics;
 use eyre::{bail, WrapErr};
 use serde::Deserialize;
-use toml::value::Table;
+use toml::Value;
 
 use crate::config::google::StackDriverMetricsConfig;
 
@@ -107,7 +107,7 @@ fn configure_stackdriver_metrics_sink(
 pub struct SourceDefinition {
     pub name: String,
     #[serde(flatten)]
-    pub params: Table,
+    pub params: Value,
 }
 
 impl SourceDefinition {
@@ -115,9 +115,7 @@ impl SourceDefinition {
     where
         P: Deserialize<'de>,
     {
-        toml::Value::Table(self.params)
-            .try_into()
-            .wrap_err("Error when parsing params")
+        self.params.try_into().wrap_err("Error when parsing params")
     }
 }
 
@@ -125,7 +123,7 @@ impl SourceDefinition {
 pub struct SinkDefinition {
     pub name: String,
     #[serde(flatten)]
-    pub params: Table,
+    pub params: Value,
 }
 
 impl SinkDefinition {
@@ -133,8 +131,6 @@ impl SinkDefinition {
     where
         P: Deserialize<'de>,
     {
-        toml::Value::Table(self.params)
-            .try_into()
-            .wrap_err("Error when parsing params")
+        self.params.try_into().wrap_err("Error when parsing params")
     }
 }
