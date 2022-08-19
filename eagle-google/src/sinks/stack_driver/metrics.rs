@@ -96,8 +96,8 @@ pub struct StackDriverMetrics {
 }
 
 impl StackDriverMetrics {
-    pub fn new(options: StackDriverMetricsOptions) -> eyre::Result<Self> {
-        Ok(Self { options })
+    pub fn new(options: StackDriverMetricsOptions) -> Self {
+        Self { options }
     }
 }
 

@@ -79,4 +79,18 @@ impl StackDriverMetricsOptions {
 
         self
     }
+
+    pub fn resource_mappings(self, resource_mappings: HashMap<String, Resource>) -> Self {
+        Self {
+            resource_mappings,
+            ..self
+        }
+    }
+
+    pub fn default_resource(self, default_resource: Resource) -> Self {
+        Self {
+            default_resource,
+            ..self
+        }
+    }
 }
