@@ -9,8 +9,8 @@ mod sink;
 mod source;
 
 pub struct VSpec {
-    join: JoinHandle<()>,
-    endpoint: EagleEndpoint,
+    pub join: JoinHandle<()>,
+    pub endpoint: EagleEndpoint,
 }
 
 enum Recv {

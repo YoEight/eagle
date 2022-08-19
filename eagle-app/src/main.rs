@@ -1,15 +1,6 @@
 mod config;
 
-use eagle::{
-    engines::VSpec,
-    sinks::Console,
-    sources::{Disks, Load, Memory},
-};
-use eagle_core::{
-    config::{Configuration, SinkConfig, SourceConfig},
-    MetricFilter,
-};
-use eagle_google::{sinks::StackDriverMetrics, StackDriverMetricsOptions};
+use eagle::engines::VSpec;
 use eyre::WrapErr;
 use structopt::StructOpt;
 

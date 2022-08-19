@@ -2,13 +2,9 @@ use std::{sync::Arc, time::Instant};
 
 use eagle_core::{
     config::{SinkConfig, SinkDecl},
-    eagle_channel, EagleSink, EagleStream, Metric, MetricEvent, Origin,
+    eagle_channel, EagleSink, Metric, MetricEvent, Origin,
 };
-use tokio::{
-    runtime::{Handle, Runtime},
-    task::JoinHandle,
-    time::Duration,
-};
+use tokio::{runtime::Handle, task::JoinHandle, time::Duration};
 use uuid::Uuid;
 
 pub struct SinkState {

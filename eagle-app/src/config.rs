@@ -1,4 +1,6 @@
+mod disks;
 mod google;
+
 use std::collections::HashMap;
 
 use eagle::{
@@ -6,12 +8,14 @@ use eagle::{
     sources::{Disks, Load, Memory},
 };
 use eagle_core::config::{Configuration, SinkConfig, SourceConfig};
-use eagle_google::{sinks::StackDriverMetrics, Resource, StackDriverMetricsOptions};
-use eyre::{bail, eyre, WrapErr};
+use eagle_google::sinks::StackDriverMetrics;
+use eyre::{bail, WrapErr};
 use serde::Deserialize;
-use toml::value::{Table, Value};
+use toml::value::Table;
 
 use crate::config::google::StackDriverMetricsConfig;
+
+use self::disks::DisksConfig;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -63,21 +67,10 @@ fn configure_disk_source(
     config: &mut Configuration,
     definition: SourceDefinition,
 ) -> eyre::Result<()> {
-    let disks = if let Some(disks) = definition.params.get("disks") {
-        if let Some(disks) = disks.as_array().and_then(parse_disks_param) {
-            disks
-        } else {
-            bail!("'disks' parameter is not a list of string")
-        }
-    } else {
-        Vec::<String>::new()
-    };
+    let name = definition.name.clone();
+    let options = definition.parse_params::<DisksConfig>()?;
 
-    config.register_source(
-        definition.name.as_str(),
-        SourceConfig::default(),
-        Disks::new(disks),
-    );
+    config.register_source(name, SourceConfig::default(), Disks::new(options.disks));
 
     Ok(())
 }
@@ -88,16 +81,6 @@ fn configure_memory_source(config: &mut Configuration, definition: SourceDefinit
 
 fn configure_load_source(config: &mut Configuration, definition: SourceDefinition) {
     config.register_source(definition.name.as_str(), SourceConfig::default(), Load);
-}
-
-fn parse_disks_param(disks: &Vec<Value>) -> Option<Vec<String>> {
-    let mut fin_disks = Vec::with_capacity(disks.len());
-
-    for value in disks {
-        fin_disks.push(value.as_str()?.to_string());
-    }
-
-    Some(fin_disks)
 }
 
 fn configure_console_sink(config: &mut Configuration, definition: SinkDefinition) {
