@@ -10,7 +10,7 @@ version = "*"
 features = ["v4"]
 
 [dependencies.tokio]
-version = "1"
+version = "1.20"
 features = ["macros", "time", "rt-multi-thread", "sync"]
 
 [dependencies.heim]

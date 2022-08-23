@@ -3,6 +3,7 @@ mod config;
 use eagle::engines::VSpec;
 use eyre::WrapErr;
 use structopt::StructOpt;
+use tracing::Level;
 
 #[derive(StructOpt)]
 struct Args {
@@ -12,6 +13,12 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     let args = Args::from_args();
     let content = std::fs::read_to_string(args.config.as_path())
         .wrap_err("Error when reading config file")?;

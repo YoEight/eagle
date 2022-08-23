@@ -166,8 +166,12 @@ impl MetricSink for StackDriverMetrics {
                         MetricType::Counter => MetricKind::Cumulative,
                     };
 
-                    let start_time = crate::to_timestamp(started.time());
                     let end_time = crate::to_timestamp(metric.timestamp);
+                    let start_time = if metric.r#type == MetricType::Gauge {
+                        end_time.clone()
+                    } else {
+                        crate::to_timestamp(started.time())
+                    };
 
                     buffer.insert(
                         metric_type.clone(),
