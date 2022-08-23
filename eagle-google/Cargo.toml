@@ -7,13 +7,13 @@ edition = "2021"
 
 # We only uncomment when we want to regenerate gRPC files, otherwise it forces the user to have
 # their dev environment set up.
-# build = "codegen.rs"
+build = "codegen.rs"
 
 [dependencies.eagle-core]
 path = "../eagle-core"
 
 [dependencies.tonic]
-version = "0.6"
+version = "0.8"
 default-features = false
 features = ["prost", "tls", "transport", "codegen", "tls-roots"]
 
@@ -22,9 +22,9 @@ version = "1"
 features = ["time"]
 
 [dependencies]
-prost = "0.9"
-prost-types = "0.9"
-prost-derive = "0.9"
+prost = "0.11"
+prost-types = "0.11"
+prost-derive = "0.11"
 async-trait = "*"
 chrono = "0.4"
 gouth = "0.2"
@@ -33,5 +33,5 @@ tracing = "0.1"
 metrics = "0.20"
 
 [build-dependencies.tonic-build]
-version = "0.6"
+version = "0.8"
 features = ["prost"]

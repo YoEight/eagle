@@ -74,7 +74,7 @@ impl GcpToken {
         let auth_value = token
             .header_value()
             .wrap_err("Error when creating GCP header value")?;
-        let auth_value = MetadataValue::from_str(&*auth_value)
+        let auth_value = MetadataValue::try_from(&*auth_value)
             .wrap_err("Error when creating CGP metadata value")?;
 
         Ok(Self { auth_value })
