@@ -242,6 +242,7 @@ impl MetricSink for StackDriverMetrics {
             }
 
             clock = Instant::now();
+            tracing::debug!("Time series was successfully created");
         }
 
         Ok(())
