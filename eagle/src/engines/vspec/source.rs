@@ -19,7 +19,10 @@ pub fn spawn_source(handle: &Handle, decl: SourceDecl, endpoint: EagleEndpoint) 
             endpoint,
         };
 
+        let instance_id = client.origin.instance_id().to_string();
+        tracing::info!(target = instance_id.as_str(), "Source started");
         source.produce(client).await;
+        tracing::info!(target = instance_id.as_str(), "Source exited");
     });
 
     SourceState { origin, handle }
