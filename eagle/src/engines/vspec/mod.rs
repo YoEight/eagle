@@ -58,6 +58,8 @@ impl VSpec {
             .map(|decl| spawn_source(handle, decl, endpoint.clone()))
             .collect::<Vec<_>>();
 
+        let mut transformers = conf.transformers;
+
         let join = handle.spawn(async move {
             let mut deads = Vec::new();
             let mut errored = true;
@@ -65,7 +67,45 @@ impl VSpec {
             while let Recv::Available(event) = main_recv.recv().await {
                 match event.event {
                     Event::Metric(metric) => {
-                        let metric = Arc::new(metric);
+                        let origin = event.origin.clone();
+                        let metric_name = metric.name.clone();
+                        let metric_category = metric.category.clone();
+                        let mut transes = transformers.iter_mut();
+                        let mut metric = Some(metric);
+
+                        while let Some(decl) = transes.next() {
+                            match metric.take() {
+                                None => break,
+                                Some(m) => {
+                                    tracing::debug!(
+                                        target = "main-process",
+                                        "Calling transformer {}",
+                                        decl.origin.instance_id()
+                                    );
+
+                                    metric = decl.transformer.transform(origin.clone(), m);
+
+                                    tracing::debug!(
+                                        target = "main-process",
+                                        "transformer {} completed. passed: {}",
+                                        decl.origin.instance_id(),
+                                        metric.is_some()
+                                    );
+                                }
+                            }
+                        }
+
+                        let metric = if let Some(metric) = metric {
+                            Arc::new(metric)
+                        } else {
+                            tracing::warn!(
+                                target = "main-process",
+                                "Metric {}:{} was filtered out by transformers",
+                                metric_category,
+                                metric_name,
+                            );
+                            continue;
+                        };
 
                         for sink in sinks.iter_mut() {
                             if sink.is_handled(event.origin.as_ref(), metric.as_ref()) {

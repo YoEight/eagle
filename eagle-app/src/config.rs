@@ -7,8 +7,9 @@ use std::collections::HashMap;
 use eagle::{
     sinks::Console,
     sources::{Disks, Load, Memory},
+    transformers::tags::Tags,
 };
-use eagle_core::config::{Configuration, SinkConfig, SourceConfig};
+use eagle_core::config::{Configuration, SinkConfig, SourceConfig, TransformerConfig};
 use eagle_google::sinks::StackDriverMetrics;
 use eyre::{bail, WrapErr};
 use serde::Deserialize;
@@ -16,7 +17,7 @@ use toml::Value;
 
 use crate::config::google::StackDriverMetricsConfig;
 
-use self::disks::DisksConfig;
+use self::{disks::DisksConfig, tags::TagsConfig};
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -62,6 +63,15 @@ impl Config {
             }
         }
 
+        for (name, definition) in self.transformers {
+            match name.as_str() {
+                "tags" => {
+                    configure_tags_transformer(&mut config, definition)?;
+                }
+                unknown => bail!("Unknown transformer '{}'", unknown),
+            }
+        }
+
         Ok(config)
     }
 }
@@ -102,6 +112,18 @@ fn configure_stackdriver_metrics_sink(
         SinkConfig::default(),
         StackDriverMetrics::new(params.into_options()),
     );
+
+    Ok(())
+}
+
+fn configure_tags_transformer(
+    config: &mut Configuration,
+    definition: TransformerDefinition,
+) -> eyre::Result<()> {
+    let name = definition.name.clone();
+    let params = definition.parse_params::<TagsConfig>()?;
+
+    config.register_transformer(name, TransformerConfig::default(), Tags::new(params.tags));
 
     Ok(())
 }

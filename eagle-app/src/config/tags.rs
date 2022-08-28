@@ -1,6 +1,9 @@
+use std::collections::BTreeMap;
+
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct TagsConfig {
-    pub disks: Vec<String>,
+    #[serde(flatten)]
+    pub tags: BTreeMap<String, String>,
 }
