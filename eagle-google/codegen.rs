@@ -1,6 +1,9 @@
 pub fn generate() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = "src/generated";
-    let files = ["protos/googleapis/google/monitoring/v3/metric_service.proto"];
+    let files = [
+        "protos/googleapis/google/monitoring/v3/metric_service.proto",
+        "protos/googleapis/google/logging/v2/logging.proto",
+    ];
 
     std::fs::create_dir_all(out_dir)?;
 
@@ -17,6 +20,13 @@ pub fn generate() -> Result<(), Box<dyn std::error::Error>> {
 
         let (name, _) = filename_string.split_at(len - 3);
         let new_name = name.replace(".", "_");
+
+        let new_name = if new_name.as_str() == "google_logging_r#type" {
+            "google_logging_type".to_string()
+        } else {
+            new_name
+        };
+
         let new_name = format!("{}.rs", new_name);
         let new_file = file.path().parent().unwrap().join(new_name);
 
