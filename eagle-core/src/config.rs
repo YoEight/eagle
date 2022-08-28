@@ -1,10 +1,22 @@
-use crate::{MetricFilter, MetricSink, Origin, Source};
+use crate::{MetricFilter, MetricSink, Origin, Source, Transformer};
 
 pub struct SinkConfig {
     pub filter: MetricFilter,
 }
 
 impl Default for SinkConfig {
+    fn default() -> Self {
+        Self {
+            filter: MetricFilter::no_filter(),
+        }
+    }
+}
+
+pub struct TransformerConfig {
+    pub filter: MetricFilter,
+}
+
+impl Default for TransformerConfig {
     fn default() -> Self {
         Self {
             filter: MetricFilter::no_filter(),
@@ -37,6 +49,13 @@ pub struct SourceDecl {
 pub struct Configuration {
     pub sources: Vec<SourceDecl>,
     pub sinks: Vec<SinkDecl>,
+    pub transformers: Vec<TransformerDecl>,
+}
+
+pub struct TransformerDecl {
+    pub origin: Origin,
+    pub config: TransformerConfig,
+    pub transformer: Box<dyn Transformer + Send + 'static>,
 }
 
 impl Configuration {
@@ -61,6 +80,21 @@ impl Configuration {
             origin: Origin::new(name),
             config,
             sink: Box::new(sink),
+        });
+    }
+
+    pub fn register_transformer<T>(
+        &mut self,
+        name: impl AsRef<str>,
+        config: TransformerConfig,
+        transformer: T,
+    ) where
+        T: Transformer + Send + 'static,
+    {
+        self.transformers.push(TransformerDecl {
+            origin: Origin::new(name),
+            config,
+            transformer: Box::new(transformer),
         });
     }
 }

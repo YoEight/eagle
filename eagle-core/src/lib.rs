@@ -291,3 +291,7 @@ pub trait MetricSink {
 pub trait Source {
     async fn produce(&mut self, client: EagleClient);
 }
+
+pub trait Transformer {
+    fn transform(&mut self, origin: Arc<Origin>, metric: Metric) -> Option<Metric>;
+}
