@@ -1,5 +1,6 @@
 mod disks;
 mod google;
+mod tags;
 
 use std::collections::HashMap;
 
@@ -21,6 +22,8 @@ use self::disks::DisksConfig;
 pub struct Config {
     pub sources: HashMap<String, SourceDefinition>,
     pub sinks: HashMap<String, SinkDefinition>,
+    #[serde(default)]
+    pub transformers: HashMap<String, TransformerDefinition>,
 }
 
 impl Config {
@@ -127,6 +130,23 @@ pub struct SinkDefinition {
 }
 
 impl SinkDefinition {
+    pub fn parse_params<'de, P>(self) -> eyre::Result<P>
+    where
+        P: Deserialize<'de>,
+    {
+        self.params.try_into().wrap_err("Error when parsing params")
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct TransformerDefinition {
+    pub name: String,
+
+    #[serde(flatten)]
+    pub params: Value,
+}
+
+impl TransformerDefinition {
     pub fn parse_params<'de, P>(self) -> eyre::Result<P>
     where
         P: Deserialize<'de>,
