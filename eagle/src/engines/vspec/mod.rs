@@ -70,10 +70,9 @@ impl VSpec {
                         let origin = event.origin.clone();
                         let metric_name = metric.name.clone();
                         let metric_category = metric.category.clone();
-                        let mut transes = transformers.iter_mut();
                         let mut metric = Some(metric);
 
-                        while let Some(decl) = transes.next() {
+                        for decl in transformers.iter_mut() {
                             match metric.take() {
                                 None => break,
                                 Some(m) => {
