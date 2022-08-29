@@ -48,7 +48,7 @@ impl Source for Disks {
                                     counter.device_name().to_str().unwrap().to_string(),
                                 );
 
-                                if !client
+                                if let Err(e) = client
                                     .send_metrics(vec![
                                         MetricBuilder::gauge(
                                             "host",
@@ -80,6 +80,12 @@ impl Source for Disks {
                                     ])
                                     .await
                                 {
+                                    tracing::error!(
+                                        target = client.origin().instance_id(),
+                                        "Unexpected error when sending metrics: {}",
+                                        e
+                                    );
+
                                     break;
                                 }
                             }

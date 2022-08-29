@@ -20,7 +20,7 @@ impl Source for Load {
                 }
 
                 Ok(loadavg) => {
-                    if !client
+                    if let Err(e) = client
                         .send_metrics(vec![
                             MetricBuilder::gauge("host", "load1", loadavg.0.get::<ratio>() as f64)
                                 .build(),
@@ -31,6 +31,12 @@ impl Source for Load {
                         ])
                         .await
                     {
+                        tracing::error!(
+                            target = client.origin().instance_id(),
+                            "Error when sending metrics: {}",
+                            e
+                        );
+
                         break;
                     }
                 }

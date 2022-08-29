@@ -20,7 +20,7 @@ impl Source for Memory {
                 }
 
                 Ok(memory) => {
-                    if !client
+                    if let Err(e) = client
                         .send_metrics(vec![
                             MetricBuilder::gauge(
                                 "host",
@@ -49,10 +49,17 @@ impl Source for Memory {
                         ])
                         .await
                     {
+                        tracing::error!(
+                            target = client.origin().instance_id(),
+                            "Error when sending metrics: {}",
+                            e
+                        );
+
                         break;
                     }
                 }
             }
+
             clock.tick().await;
         }
     }

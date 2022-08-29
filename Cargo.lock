@@ -446,6 +446,8 @@ dependencies = [
  "chrono",
  "eyre",
  "futures",
+ "serde",
+ "serde_json",
  "tokio",
  "uuid",
 ]

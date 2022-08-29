@@ -129,6 +129,8 @@ impl VSpec {
                         }
                     }
 
+                    Event::Log(_) => {}
+
                     Event::Tick => {}
 
                     Event::Shutdown => {

@@ -1,6 +1,9 @@
 pub mod config;
 
 use chrono::{DateTime, Utc};
+use eyre::WrapErr;
+use serde::Serialize;
+use serde_json::Value;
 use std::{collections::BTreeMap, sync::Arc};
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -15,25 +18,52 @@ impl EagleEndpoint {
         Self { inner }
     }
 
-    pub fn send_metric(&self, origin: Arc<Origin>, metric: Metric) -> bool {
+    pub fn send_metric(&self, origin: Arc<Origin>, metric: Metric) -> eyre::Result<()> {
         self.send_metrics(origin, vec![metric])
     }
 
-    pub fn send_metrics(&self, origin: Arc<Origin>, metrics: Vec<Metric>) -> bool {
+    pub fn send_metrics(&self, origin: Arc<Origin>, metrics: Vec<Metric>) -> eyre::Result<()> {
         for metric in metrics {
-            if self
-                .inner
+            self.inner
                 .send(EagleEvent {
                     origin: origin.clone(),
                     event: Event::Metric(metric),
                 })
-                .is_err()
-            {
-                return false;
-            }
+                .wrap_err("Main eagle engine shut down")?;
         }
 
-        true
+        Ok(())
+    }
+
+    pub fn send_log_with_metadata<L, M>(
+        &self,
+        origin: Arc<Origin>,
+        log: L,
+        metadata: M,
+    ) -> eyre::Result<()>
+    where
+        L: Serialize,
+        M: Serialize,
+    {
+        self.inner
+            .send(EagleEvent {
+                origin,
+                event: Event::Log(Log {
+                    inner: Arc::new(
+                        serde_json::to_value(log).wrap_err("Error when serializing log object")?,
+                    ),
+                    metadata: serde_json::to_value(metadata)
+                        .wrap_err("Error when serializing metadata object")?,
+                }),
+            })
+            .wrap_err("Main eagle engine shut down")
+    }
+
+    pub fn send_log<L>(&self, origin: Arc<Origin>, log: L) -> eyre::Result<()>
+    where
+        L: Serialize,
+    {
+        self.send_log_with_metadata(origin, log, Value::Object(Default::default()))
     }
 }
 
@@ -43,12 +73,28 @@ pub struct EagleClient {
 }
 
 impl EagleClient {
-    pub async fn send_metric(&self, metric: Metric) -> bool {
+    pub async fn send_metric(&self, metric: Metric) -> eyre::Result<()> {
         self.endpoint.send_metric(self.origin.clone(), metric)
     }
 
-    pub async fn send_metrics(&self, metrics: Vec<Metric>) -> bool {
+    pub async fn send_metrics(&self, metrics: Vec<Metric>) -> eyre::Result<()> {
         self.endpoint.send_metrics(self.origin.clone(), metrics)
+    }
+
+    pub async fn send_log_with_metadata<L, M>(&self, log: L, metadata: M) -> eyre::Result<()>
+    where
+        L: Serialize,
+        M: Serialize,
+    {
+        self.endpoint
+            .send_log_with_metadata(self.origin.clone(), log, metadata)
+    }
+
+    pub async fn send_log<L>(&self, log: L) -> eyre::Result<()>
+    where
+        L: Serialize,
+    {
+        self.endpoint.send_log(self.origin.clone(), log)
     }
 
     pub fn origin(&self) -> &Origin {
@@ -89,6 +135,7 @@ pub struct EagleEvent {
 #[derive(Debug)]
 pub enum Event {
     Metric(Metric),
+    Log(Log),
     Tick,
     Shutdown,
 }
@@ -109,6 +156,12 @@ pub struct Metric {
     pub category: String,
     pub tags: BTreeMap<String, String>,
     pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Debug)]
+pub struct Log {
+    pub inner: Arc<Value>,
+    pub metadata: Value,
 }
 
 pub struct MetricBuilder {
