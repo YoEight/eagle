@@ -1,12 +1,14 @@
 use eagle_core::{EagleClient, Source};
-use eyre::WrapErr;
+use eyre::{bail, WrapErr};
+use serde::{Deserialize, Serialize};
 use std::{io::SeekFrom, path::PathBuf, time::Duration};
 use tokio::{
     fs,
     io::{AsyncBufReadExt, AsyncSeekExt, BufReader},
 };
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Copy, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Codec {
     Json,
     Text,
@@ -40,17 +42,30 @@ impl Source for File {
         let mut lines = BufReader::with_capacity(8_192, file).lines();
 
         loop {
-            if let Some(line) = lines.next_line().await.wrap_err_with(|| {
-                format!(
-                    "Error when pulling lines out of {:?}",
-                    self.filepath.as_path()
-                )
-            })? {
-                // TODO - Procede on whether raw text or pass json.
-                continue;
-            }
+            match lines.next_line().await {
+                Err(e) => bail!(
+                    "Error when pulling lines out of {:?}: {}",
+                    self.filepath.as_path(),
+                    e
+                ),
 
-            tokio::time::sleep(Duration::from_millis(500)).await;
+                Ok(line) => {
+                    if let Some(line) = line {
+                        let log = match self.codec {
+                            Codec::Json => {
+                                serde_json::from_str(line.as_str()).wrap_err("Invalid JSON")?
+                            }
+                            Codec::Text => serde_json::Value::String(line),
+                        };
+
+                        client.send_log(log).await?;
+
+                        continue;
+                    }
+
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                }
+            }
         }
     }
 }

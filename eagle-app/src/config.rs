@@ -1,4 +1,5 @@
 mod disks;
+mod file;
 mod google;
 mod tags;
 
@@ -6,7 +7,7 @@ use std::collections::HashMap;
 
 use eagle::{
     sinks::Console,
-    sources::{Disks, Load, Memory},
+    sources::{Disks, File, Load, Memory},
     transformers::tags::Tags,
 };
 use eagle_core::config::{Configuration, SinkConfig, SourceConfig, TransformerConfig};
@@ -17,7 +18,7 @@ use toml::Value;
 
 use crate::config::google::StackDriverMetricsConfig;
 
-use self::{disks::DisksConfig, tags::TagsConfig};
+use self::{disks::DisksConfig, file::FileConfig, tags::TagsConfig};
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -43,6 +44,10 @@ impl Config {
 
                 "load" => {
                     configure_load_source(&mut config, definition);
+                }
+
+                "file" => {
+                    configure_file_source(&mut config, definition)?;
                 }
 
                 unknown => bail!("Unknown source '{}'", unknown),
@@ -94,6 +99,22 @@ fn configure_memory_source(config: &mut Configuration, definition: SourceDefinit
 
 fn configure_load_source(config: &mut Configuration, definition: SourceDefinition) {
     config.register_source(definition.name.as_str(), SourceConfig::default(), Load);
+}
+
+fn configure_file_source(
+    config: &mut Configuration,
+    definition: SourceDefinition,
+) -> eyre::Result<()> {
+    let name = definition.name.clone();
+    let options = definition.parse_params::<FileConfig>()?;
+
+    config.register_source(
+        name,
+        SourceConfig::default(),
+        File::new(options.filepath, options.codec),
+    );
+
+    Ok(())
 }
 
 fn configure_console_sink(config: &mut Configuration, definition: SinkDefinition) {

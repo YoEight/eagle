@@ -129,7 +129,9 @@ impl VSpec {
                         }
                     }
 
-                    Event::Log(_) => {}
+                    Event::Log(log) => {
+                        tracing::info!(target = "main-process", "Log received >>> {:?}", log);
+                    }
 
                     Event::Tick => {}
 

@@ -417,6 +417,8 @@ dependencies = [
  "heim-cpu",
  "heim-disk",
  "heim-memory",
+ "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "uuid",
