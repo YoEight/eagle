@@ -342,7 +342,7 @@ pub trait MetricSink {
 
 #[async_trait::async_trait]
 pub trait Source {
-    async fn produce(&mut self, client: EagleClient);
+    async fn produce(&mut self, client: EagleClient) -> eyre::Result<()>;
 }
 
 pub trait Transformer {

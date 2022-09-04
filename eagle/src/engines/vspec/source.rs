@@ -21,8 +21,19 @@ pub fn spawn_source(handle: &Handle, decl: SourceDecl, endpoint: EagleEndpoint) 
 
         let instance_id = client.origin.instance_id().to_string();
         tracing::info!(target = instance_id.as_str(), "Source started");
-        source.produce(client).await;
-        tracing::info!(target = instance_id.as_str(), "Source exited");
+        match source.produce(client).await {
+            Ok(_) => {
+                tracing::info!(target = instance_id.as_str(), "Source exited");
+            }
+
+            Err(e) => {
+                tracing::error!(
+                    target = instance_id.as_str(),
+                    "Source exited with an error: {}",
+                    e
+                );
+            }
+        }
     });
 
     SourceState { origin, handle }

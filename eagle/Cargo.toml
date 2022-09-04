@@ -11,7 +11,7 @@ features = ["v4"]
 
 [dependencies.tokio]
 version = "1.20"
-features = ["macros", "time", "rt-multi-thread", "sync"]
+features = ["macros", "time", "rt-multi-thread", "sync", "fs"]
 
 [dependencies.heim]
 version = "0.1.0-rc.1"
