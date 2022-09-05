@@ -4,4 +4,5 @@ members = [
     "eagle-app",
     "eagle-core",
     "eagle-google",
+    "eagle-file",
 ]

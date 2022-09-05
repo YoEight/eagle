@@ -455,6 +455,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "eagle-file"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "glob",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "eagle-google"
 version = "0.1.0"
 dependencies = [
