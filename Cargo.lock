@@ -458,6 +458,8 @@ dependencies = [
 name = "eagle-file"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "eagle-core",
  "eyre",
  "glob",
  "serde",

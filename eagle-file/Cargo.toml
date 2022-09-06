@@ -7,12 +7,16 @@ edition = "2021"
 
 [dependencies.tokio]
 version = "1"
-features = ["fs"]
+features = ["fs", "rt", "sync", "time"]
 
 [dependencies.serde]
 version = "1"
 features = ["derive"]
 
+[dependencies.eagle-core]
+path = "../eagle-core"
+
 [dependencies]
 eyre = "0.6"
 glob = "0.3"
+async-trait = "*"
